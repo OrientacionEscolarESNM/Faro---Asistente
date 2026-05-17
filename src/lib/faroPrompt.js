@@ -2,7 +2,7 @@
  * Servicio de integración del asistente Faro con Google Apps Script y RAG Local
  */
 
-const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbwvNHYH0mJkwVP-IFIJbxPVlB-y6gdNvOV6cPnOdnSYMIcFl7Sx0uys8g8jA9eJod6L/exec";
+const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbxXuT29r-1x1J83NW7eMWjwRing0MCM3ZueQWzY7LQnm6nk0Qv9oqOke2ScGV-4MQ/exec";
 
 // Cargar la base de conocimiento en memoria
 let knowledgeBase = [];
@@ -53,7 +53,7 @@ const searchKnowledge = async (query) => {
 /**
  * Función principal para obtener la respuesta de Faro
  */
-export const getFaroResponse = async (userMessage) => {
+export const getFaroResponse = async (userMessage, userName = "", userAge = "") => {
   try {
     const lowerMsg = userMessage.toLowerCase();
     
@@ -63,8 +63,8 @@ export const getFaroResponse = async (userMessage) => {
     
     if (isExtremeCrisis) {
       return "🚨 **PROTOCOLO DE EMERGENCIA ACTIVADO:** He detectado términos asociados a un riesgo vital inmediato. Como asistente de Inteligencia Artificial, **no puedo reemplazar la ayuda humana**. Por favor:\n\n" +
-             "1. Llama inmediatamente a la **Línea Amiga Casanare (322 784 2874)** o al **123**.\n" +
-             "2. No te quedes solo/a, busca de inmediato a tu orientador escolar (3214637057) o a un adulto protector.\n" +
+             "1. Llama inmediatamente a la **Línea Amiga Casanare (322 784 2874)** o a **Bomberos Monterrey (312 550 0806)**.\n" +
+             "2. No te quedes solo/a, busca de inmediato a tu orientador escolar (321 463 7057) o a un adulto protector.\n" +
              "3. Dirígete a la sección de **Emergencia** en el menú lateral para ver más números y contactos directos.\n\n" +
              "Tu vida e integridad física son lo más importante. Estamos listos para apoyarte.";
     }
@@ -87,7 +87,9 @@ export const getFaroResponse = async (userMessage) => {
       },
       body: JSON.stringify({
         message: userMessage,
-        context: context
+        context: context,
+        userName: userName,
+        userAge: userAge
       })
     });
     
