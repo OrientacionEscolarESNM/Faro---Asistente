@@ -53,7 +53,7 @@ const searchKnowledge = async (query) => {
 /**
  * Función principal para obtener la respuesta de Faro
  */
-export const getFaroResponse = async (userMessage, userName = "", userAge = "", location = null) => {
+export const getFaroResponse = async (userMessage, userName = "", userAge = "", location = null, sessionId = "") => {
   try {
     const lowerMsg = userMessage.toLowerCase();
     
@@ -70,7 +70,7 @@ export const getFaroResponse = async (userMessage, userName = "", userAge = "", 
     const defaultContacts = kb.find(c => c.id === 3)?.text || "";
     
     const context = `${defaultIntro}\n\n${defaultContacts}\n\nContexto de búsqueda específico:\n${searchedContext}`;
-
+ 
     // 3. Consultar al backend de Google Apps Script
     const response = await fetch(APPS_SCRIPT_URL, {
       method: 'POST',
@@ -83,7 +83,8 @@ export const getFaroResponse = async (userMessage, userName = "", userAge = "", 
         userName: userName,
         userAge: userAge,
         location: location,
-        forceEmergency: isExtremeCrisis
+        forceEmergency: isExtremeCrisis,
+        sessionId: sessionId
       })
     });
     

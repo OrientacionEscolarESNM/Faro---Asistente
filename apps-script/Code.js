@@ -17,6 +17,7 @@ function doPost(e) {
     var userAge = data.userAge || "";
     var location = data.location || null;
     var forceEmergency = data.forceEmergency || false;
+    var sessionId = data.sessionId || "";
     
     if (!message) {
       throw new Error("El mensaje del usuario está vacío.");
@@ -34,6 +35,23 @@ function doPost(e) {
       // Limpiar el tag para que no se muestre al usuario
       aiResponse = aiResponse.replace(/\[ALERTA_RIESGO\]/g, "").trim();
     }
+    
+    // Extraer la categoría de la IA
+    var category = "Otros";
+    var categoryMatch = aiResponse.match(/\[CATEGORIA:\s*([^\]]+)\]/);
+    if (categoryMatch) {
+      category = categoryMatch[1].trim();
+      // Limpiar el tag de la respuesta del usuario
+      aiResponse = aiResponse.replace(/\[CATEGORIA:\s*[^\]]+\]/g, "").trim();
+    }
+    
+    // Si es una emergencia, forzamos la categoría a Tristeza/Depresión si es genérica
+    if (wasEmergencyDetectedByAI && (category === "Otros" || category === "Consulta de Información")) {
+      category = "Tristeza/Depresión";
+    }
+    
+    // Guardar estadísticas anónimas en Google Sheets
+    logSessionToGoogleSheet(sessionId, userAge, category, wasEmergencyDetectedByAI);
     
     output.setContent(JSON.stringify({
       success: true,
@@ -86,7 +104,10 @@ function getAIChatResponse(userMessage, context, userName, userAge, forceEmergen
     "- Responde SIEMPRE en el mismo idioma en el que te hable el usuario. Tu redacción debe ser 100% natural, empática y perfecta.\n" +
     "- Tus respuestas DEBEN ser sumamente cortas, empáticas y concisas.\n" +
     "- Si el usuario muestra intenciones suicidas, de autolesión o manifiesta explícita o implícitamente que no quiere vivir, tu respuesta debe ser EXTREMADAMENTE persuasiva, cálida, humana y de contención emocional profunda para disuadirlo de hacerse daño. Hazle sentir que su vida es inmensamente valiosa y que no está solo en este dolor. Tras brindarle esa fuerte contención emocional inicial, guíalo suavemente y con cariño a buscar ayuda humana proporcionando los números de la Línea Amiga (322 784 2874) o la Orientación Escolar ESNM (321 463 7057). NUNCA uses frases robóticas ni alarmantes como 'Protocolo de emergencia activado'. Sé un apoyo cercano, de tú a tú.\n" +
-    "- ADEMÁS, es ESTRICTAMENTE OBLIGATORIO que incluyas el texto oculto [ALERTA_RIESGO] al principio de tu respuesta para activar las alarmas del sistema.\n";
+    "- ADEMÁS, es ESTRICTAMENTE OBLIGATORIO que incluyas el texto oculto [ALERTA_RIESGO] al principio de tu respuesta para activar las alarmas del sistema.\n\n" +
+    "REGLA DE METADATOS DE ANÁLISIS:\n" +
+    "- Al final de tu respuesta, DEBES agregar una línea oculta con la clasificación de la conversación en una de estas categorías exactas: 'Estrés Académico', 'Ansiedad/Estrés', 'Tristeza/Depresión', 'Conflictos/Bullying', 'Problemas Familiares', 'Autoestima/Identidad', 'Salud/Sustancias', 'Consulta de Información', 'Otros'.\n" +
+    "- El formato de la línea DEBE ser estrictamente: [CATEGORIA: NombreCategoria]. Por ejemplo: [CATEGORIA: Ansiedad/Estrés]. Esta etiqueta es vital para las estadísticas escolares y será filtrada automáticamente por el servidor.\n";
 
   if (forceEmergency) {
     systemInstruction += "\nATENCIÓN IA: El sistema de seguridad local acaba de detectar que el usuario ingresó palabras de altísimo riesgo. DEBES aplicar el protocolo persuasivo y profundo descrito arriba inmediatamente e incluir [ALERTA_RIESGO].\n";
@@ -367,3 +388,91 @@ function sendTelegramAlert(userMessage, userName, userAge, location) {
     }
   }
 }
+
+/**
+ * Registra o actualiza la sesión anónima en Google Sheets.
+ */
+function logSessionToGoogleSheet(sessionId, userAge, category, wasEmergency) {
+  if (!sessionId) {
+    Logger.log("logSessionToGoogleSheet: sessionId está vacío.");
+    return;
+  }
+  
+  var props = PropertiesService.getScriptProperties().getProperties();
+  var sheetId = props.SPREADSHEET_ID;
+  if (!sheetId) {
+    Logger.log("logSessionToGoogleSheet: SPREADSHEET_ID no configurado en Script Properties.");
+    return;
+  }
+  
+  try {
+    var ss = SpreadsheetApp.openById(sheetId);
+    var sheet = ss.getSheets()[0]; // Abre la primera pestaña
+    
+    var dataRange = sheet.getDataRange();
+    var values = dataRange.getValues();
+    
+    var foundRowIndex = -1;
+    // Buscar si el sessionId ya existe (empezando en la fila 2 para saltar cabeceras)
+    for (var i = 1; i < values.length; i++) {
+      if (values[i][0] === sessionId) {
+        foundRowIndex = i + 1; // Fila 1-indexada para SpreadsheetApp
+        break;
+      }
+    }
+    
+    var now = new Date();
+    var diaSemana = getDayNameInSpanish(now.getDay());
+    var hora = now.getHours();
+    var ageInt = parseInt(userAge, 10) || "";
+    var emergencyStr = wasEmergency ? "SÍ" : "NO";
+    
+    if (foundRowIndex !== -1) {
+      // El sessionId ya existe, actualizamos
+      var currentCount = parseInt(values[foundRowIndex - 1][7], 10) || 0; // Columna H (Total_Mensajes)
+      var existingEmergency = values[foundRowIndex - 1][6]; // Columna G (Alerta_Emergencia)
+      
+      // Si alguna vez fue emergencia, se queda en SÍ
+      var finalEmergency = (existingEmergency === "SÍ" || wasEmergency) ? "SÍ" : "NO";
+      
+      // Actualizar categoría (si la nueva es más específica que "Otros" o "Consulta de Información")
+      var currentCategory = values[foundRowIndex - 1][5]; // Columna F
+      var finalCategory = currentCategory;
+      if (category && category !== "Otros" && category !== "Consulta de Información") {
+        finalCategory = category;
+      }
+      
+      sheet.getRange(foundRowIndex, 6).setValue(finalCategory); // Columna F (Categoria_IA)
+      sheet.getRange(foundRowIndex, 7).setValue(finalEmergency); // Columna G (Alerta_Emergencia)
+      sheet.getRange(foundRowIndex, 8).setValue(currentCount + 1); // Columna H (Total_Mensajes)
+      Logger.log("Sesión existente actualizada en Sheets. ID: " + sessionId);
+      
+    } else {
+      // No existe, creamos una nueva fila
+      // ID_Sesion (A), Fecha (B), Dia_Semana (C), Hora_Inicio (D), Edad (E), Categoria_IA (F), Alerta_Emergencia (G), Total_Mensajes (H)
+      var formattedDate = Utilities.formatDate(now, Session.getScriptTimeZone(), "dd/MM/yyyy");
+      sheet.appendRow([
+        sessionId, 
+        formattedDate, 
+        diaSemana, 
+        hora, 
+        ageInt, 
+        category || "Otros", 
+        emergencyStr, 
+        1
+      ]);
+      Logger.log("Nueva sesión registrada en Sheets. ID: " + sessionId);
+    }
+  } catch (err) {
+    Logger.log("Error al escribir en Google Sheets: " + err.toString());
+  }
+}
+
+/**
+ * Retorna el nombre del día en español.
+ */
+function getDayNameInSpanish(dayNum) {
+  var days = ["Domingo", "Lunes", "Martes", "Miércoles", "Jueves", "Viernes", "Sábado"];
+  return days[dayNum] || "Lunes";
+}
+

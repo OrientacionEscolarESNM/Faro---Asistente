@@ -28,8 +28,17 @@ export default function Chat() {
     return saved ? parseInt(saved, 10) : 0;
   });
 
-  const messagesEndRef = useRef(null);
+  const [sessionId] = useState(() => {
+    let saved = sessionStorage.getItem('faro_session_id');
+    if (!saved) {
+      saved = 'sess_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
+      sessionStorage.setItem('faro_session_id', saved);
+    }
+    return saved;
+  });
 
+  const messagesEndRef = useRef(null);
+  
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   };
@@ -105,7 +114,7 @@ export default function Chat() {
 
     try {
       // location puede ser null o tener datos
-      let responseObj = await getFaroResponse(text, userName, userAge, currentLocation?.coords || currentLocation?.status || "No solicitada");
+      let responseObj = await getFaroResponse(text, userName, userAge, currentLocation?.coords || currentLocation?.status || "No solicitada", sessionId);
       let responseText = responseObj.text;
       const isEmergency = responseObj.isEmergency;
       
