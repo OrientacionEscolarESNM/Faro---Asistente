@@ -14,12 +14,12 @@ export default function Emergency() {
         <h2>¿Estás en una situación de crisis?</h2>
         <p style={{ marginBottom: '1.5rem', color: 'var(--text-secondary)' }}>
           No estás solo. Faro es un asistente de orientación, pero en casos de emergencia vital, 
-          debes contactar a los servicios de emergencia de tu localidad.
+          debes contactar a los servicios de emergencia e instituciones competentes de inmediato.
         </p>
-        <button className="emergency-btn-large">
+        <a href="tel:3125500806" className="emergency-btn-large" style={{ textDecoration: 'none', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem' }}>
           <Phone size={24} />
-          Llamar al 911 (Emergencias)
-        </button>
+          Llamar a Bomberos Monterrey (312 550 0806)
+        </a>
       </div>
 
       <h3 style={{ marginBottom: '1rem', marginTop: '2rem' }}>Contactos Inmediatos</h3>
@@ -29,10 +29,10 @@ export default function Emergency() {
           <ShieldAlert size={24} />
         </div>
         <div className="info-content">
-          <h3>Línea de Prevención del Suicidio</h3>
-          <p>Atención gratuita, confidencial y disponible 24/7. Un especialista te escuchará sin juzgarte.</p>
-          <a href="tel:135" className="btn btn-outline" style={{ borderColor: 'var(--accent-emergency)', color: 'var(--accent-emergency)' }}>
-            <Phone size={16} /> Llamar ahora
+          <h3>Línea Amiga (Salud Mental y Prevención)</h3>
+          <p>Atención gratuita de contención emocional y prevención del suicidio para Casanare. Un especialista te escuchará sin juzgarte.</p>
+          <a href="tel:3227842874" className="btn btn-outline" style={{ borderColor: 'var(--accent-emergency)', color: 'var(--accent-emergency)', display: 'inline-flex', alignItems: 'center', gap: '0.5rem' }}>
+            <Phone size={16} /> Llamar a la Línea Amiga (322 784 2874)
           </a>
         </div>
       </div>
