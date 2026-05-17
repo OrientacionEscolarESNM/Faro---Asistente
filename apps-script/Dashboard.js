@@ -56,7 +56,7 @@ function createDashboard() {
   }
   
   // Mostrar líneas de cuadrícula para una mejor referencia de celdas
-  dashSheet.setGridlinesVisible(true);
+  dashSheet.setHideGridlines(false);
   
   // --- AGREGAR DATOS EN JAVASCRIPT A ALTA VELOCIDAD ---
   var totalSessions = data.length - 1;
