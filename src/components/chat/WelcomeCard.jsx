@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Sparkles, MessageCircle, ArrowRight } from 'lucide-react';
+import { MessageCircle, ArrowRight } from 'lucide-react';
 import './Chat.css';
 
 export default function WelcomeCard({ onActionClick, onSubmitOnboarding, isOnboarded, userName }) {
@@ -24,7 +24,33 @@ export default function WelcomeCard({ onActionClick, onSubmitOnboarding, isOnboa
     <div className="welcome-card animate-fade-in">
       <div className="welcome-header">
         <div className="faro-icon-large">
-          <Sparkles size={32} />
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ width: '32px', height: '32px' }}>
+            {/* Haces de luz superiores */}
+            <path d="M12 7L3 4M12 7L21 4" strokeWidth="1.5" opacity="0.8" />
+            {/* Haces de luz inferiores */}
+            <path d="M12 7L2 8M12 7L22 8" strokeWidth="1.5" opacity="0.45" />
+            
+            {/* Cúpula / Techo de la linterna */}
+            <path d="M10 5a2 2 0 0 1 4 0v2h-4V5z" />
+            
+            {/* Balcón / Galería del faro */}
+            <path d="M8 7h8" />
+            
+            {/* Foco de luz interior */}
+            <circle cx="12" cy="5.5" r="0.5" fill="currentColor" />
+            
+            {/* Torre del faro */}
+            <path d="M9 20l1-13h4l1 13" />
+            
+            {/* Líneas horizontales decorativas de la torre */}
+            <path d="M9.7 11h4.6M9.3 15h5.4" strokeWidth="1.5" opacity="0.8" />
+            
+            {/* Base del faro */}
+            <path d="M8 20h8" />
+            
+            {/* Olas del mar de soporte a la izquierda y derecha */}
+            <path d="M4 20c1.5-0.5 2.5-0.5 4 0s2.5 0.5 4 0 2.5-0.5 4 0 2.5 0.5 4 0" strokeWidth="1.5" opacity="0.5" />
+          </svg>
         </div>
         <h2>{isOnboarded ? `¡Hola, ${userName}! 👋` : "Hola, soy Faro"}</h2>
         <p>
