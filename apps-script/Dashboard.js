@@ -13,13 +13,32 @@ function onOpen() {
  */
 function createDashboard() {
   var ss = SpreadsheetApp.getActiveSpreadsheet();
+  
+  // Si es un script independiente (standalone) o no se abrió desde la hoja directamente
+  if (!ss) {
+    var props = PropertiesService.getScriptProperties().getProperties();
+    var sheetId = props.SPREADSHEET_ID;
+    if (sheetId) {
+      ss = SpreadsheetApp.openById(sheetId);
+    }
+  }
+  
+  if (!ss) {
+    Logger.log("❌ ERROR: No se pudo abrir la hoja de cálculo. Verifica que SPREADSHEET_ID esté configurado en Script Properties.");
+    return;
+  }
+  
   var dataSheet = ss.getSheets()[0]; // Primera pestaña (donde entran los datos de Faro)
   
   // 1. Validar que tengamos datos para trabajar
   var dataRange = dataSheet.getDataRange();
   var data = dataRange.getValues();
   if (data.length <= 1) {
-    SpreadsheetApp.getUi().alert("❌ No hay suficientes datos para generar estadísticas aún. Realiza algunas conversaciones de prueba primero.");
+    try {
+      SpreadsheetApp.getUi().alert("❌ No hay suficientes datos para generar estadísticas aún. Realiza algunas conversaciones de prueba primero.");
+    } catch (e) {
+      Logger.log("❌ No hay suficientes datos para generar estadísticas aún. Realiza algunas conversaciones de prueba primero.");
+    }
     return;
   }
   
@@ -217,9 +236,17 @@ function createDashboard() {
   dashSheet.hideColumns(17, 2); // Ocultar Q y R
   dashSheet.hideColumns(20, 2); // Ocultar T y U
   
-  // Traer la pestaña "Dashboard" al frente para el usuario
-  dashSheet.activate();
+  // Traer la pestaña "Dashboard" al frente para el usuario (si hay interfaz)
+  try {
+    dashSheet.activate();
+  } catch (e) {
+    // Ignorar si no hay interfaz gráfica activa
+  }
   
   // Mostrar mensaje de éxito
-  SpreadsheetApp.getUi().alert("📊 ¡Cuadro de Mando Faro Actualizado!\n\nSe han recalculado todos los indicadores y gráficos basados en las conversaciones reales.");
+  try {
+    SpreadsheetApp.getUi().alert("📊 ¡Cuadro de Mando Faro Actualizado!\n\nSe han recalculado todos los indicadores y gráficos basados en las conversaciones reales.");
+  } catch (e) {
+    Logger.log("📊 ¡Cuadro de Mando Faro Actualizado con total éxito! (Generado silenciosamente desde el editor).");
+  }
 }
