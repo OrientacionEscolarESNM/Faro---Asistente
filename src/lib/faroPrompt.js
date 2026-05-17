@@ -10,7 +10,7 @@ let knowledgeBase = [];
 const loadKnowledgeBase = async () => {
   if (knowledgeBase.length > 0) return knowledgeBase;
   try {
-    const response = await fetch('/faroKnowledge.json');
+    const response = await fetch(`${import.meta.env.BASE_URL}faroKnowledge.json`);
     if (response.ok) {
       knowledgeBase = await response.json();
     }
@@ -82,6 +82,9 @@ export const getFaroResponse = async (userMessage) => {
     // 3. Consultar al backend de Google Apps Script
     const response = await fetch(APPS_SCRIPT_URL, {
       method: 'POST',
+      headers: {
+        'Content-Type': 'text/plain;charset=utf-8'
+      },
       body: JSON.stringify({
         message: userMessage,
         context: context
