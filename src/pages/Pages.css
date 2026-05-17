@@ -139,3 +139,13 @@
   font-size: 0.95rem;
   margin-bottom: 1rem;
 }
+
+/* Responsividad para evitar solapamiento del botón hamburguesa flotante en tablets y móviles */
+@media (max-width: 768px) {
+  .chat-header {
+    padding-left: 4.5rem !important; /* Desplaza el título del chat hacia la derecha dando espacio al menú hamburguesa */
+  }
+  .page-container {
+    padding-top: 4.5rem !important; /* Da un colchón de espacio arriba para que el botón hamburguesa no tape el h1 */
+  }
+}
