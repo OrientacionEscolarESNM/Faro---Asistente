@@ -4,6 +4,7 @@ import MessageBubble from '../components/chat/MessageBubble';
 import WelcomeCard from '../components/chat/WelcomeCard';
 import TypingIndicator from '../components/chat/TypingIndicator';
 import { getFaroResponse } from '../lib/faroPrompt';
+import { getUserLocation } from '../lib/geolocation';
 import './Pages.css';
 
 const MESSAGE_LIMIT = 15;
@@ -12,10 +13,16 @@ export default function Chat() {
   const [messages, setMessages] = useState([]);
   const [isTyping, setIsTyping] = useState(false);
   
-  // Estado del usuario (Nombre y Edad)
+  // Estado del usuario
   const [userName, setUserName] = useState(() => sessionStorage.getItem('faro_user_name') || '');
   const [userAge, setUserAge] = useState(() => sessionStorage.getItem('faro_user_age') || '');
   
+  // Estado de Ubicación
+  const [locationData, setLocationData] = useState(() => {
+    const saved = sessionStorage.getItem('faro_location');
+    return saved ? JSON.parse(saved) : null;
+  });
+
   const [messageCount, setMessageCount] = useState(() => {
     const saved = sessionStorage.getItem('faro_message_count');
     return saved ? parseInt(saved, 10) : 0;
@@ -31,7 +38,6 @@ export default function Chat() {
     scrollToBottom();
   }, [messages, isTyping]);
 
-  // Si el usuario ya está registrado pero el chat está vacío, iniciar con un saludo personalizado
   useEffect(() => {
     if (userName && userAge && messages.length === 0) {
       const initGreeting = {
@@ -43,12 +49,9 @@ export default function Chat() {
     }
   }, [userName, userAge]);
 
-  // Función para determinar el contacto recomendado según el horario actual de Colombia
   const getRecommendedEmergencyContact = () => {
     const now = new Date();
     const hours = now.getHours();
-    
-    // Horario de atención de orientación escolar: 7:00 AM a 2:00 PM (horas 7 a 13)
     if (hours >= 7 && hours < 14) {
       return "orientador escolar al **321 463 7057** (quien está disponible en este momento en jornada escolar)";
     } else {
@@ -56,37 +59,67 @@ export default function Chat() {
     }
   };
 
-  const handleOnboardingSubmit = (name, age) => {
+  const handleOnboardingSubmit = async (name, age) => {
     setUserName(name);
     setUserAge(age);
     sessionStorage.setItem('faro_user_name', name);
     sessionStorage.setItem('faro_user_age', age);
+
+    // Intentar obtener ubicación al inicio
+    const loc = await getUserLocation();
+    setLocationData(loc);
+    sessionStorage.setItem('faro_location', JSON.stringify(loc));
+  };
+
+  const retryLocation = async () => {
+    const loc = await getUserLocation();
+    setLocationData(loc);
+    sessionStorage.setItem('faro_location', JSON.stringify(loc));
+    if (loc.coords) {
+      // Notificar al sistema con un mensaje en la UI
+      setMessages(prev => [...prev, { id: Date.now(), text: "✅ Ubicación compartida exitosamente por el usuario.", sender: 'faro' }]);
+    } else {
+      setMessages(prev => [...prev, { id: Date.now(), text: "❌ Aún no hemos podido acceder a la ubicación. Asegúrate de desbloquearla tocando el candado.", sender: 'faro' }]);
+    }
   };
 
   const handleSendMessage = async (text) => {
     if (!text.trim()) return;
     if (messageCount >= MESSAGE_LIMIT) return;
 
-    // Incrementar y guardar el contador
     const nextCount = messageCount + 1;
     setMessageCount(nextCount);
     sessionStorage.setItem('faro_message_count', nextCount.toString());
     
-    // Add user message
     const userMsg = { id: Date.now(), text, sender: 'user' };
     setMessages((prev) => [...prev, userMsg]);
     setIsTyping(true);
 
     try {
-      let responseText = await getFaroResponse(text, userName, userAge);
+      // location puede ser null o tener datos
+      let responseObj = await getFaroResponse(text, userName, userAge, locationData?.coords || locationData?.status || "No solicitada");
+      let responseText = responseObj.text;
+      const isEmergency = responseObj.isEmergency;
       
-      // Si el usuario llega al límite en este mensaje, le adjuntamos una nota clínica explicativa
       if (nextCount === MESSAGE_LIMIT) {
         responseText += `\n\n📢 **Nota de Faro:** He notado que hemos charlado bastante hoy. Me alegra mucho acompañarte, pero recuerda que soy un asistente de Inteligencia Artificial y tengo mis límites. **No puedo reemplazar la atención humana**.\n\nPor el horario en que nos escribes, te recomiendo enormemente que te comuniques con el ${getRecommendedEmergencyContact()}.\n\n¡Muchas gracias por confiar en mí y estaré encantado de volver a conversar en otra sesión!`;
       }
       
       const faroMsg = { id: Date.now() + 1, text: responseText, sender: 'faro' };
       setMessages((prev) => [...prev, faroMsg]);
+
+      // Si es emergencia y la ubicación fue bloqueada o no está disponible, insistir fuertemente
+      if (isEmergency && (!locationData || !locationData.coords)) {
+        setTimeout(() => {
+          const insistMsg = {
+            id: Date.now() + 2,
+            text: "⚠️ **IMPORTANTE:** Para poder brindarte la ayuda necesaria y proteger tu integridad, **necesitamos conocer tu ubicación**. Hemos detectado que el acceso está bloqueado.\n\nPor favor, toca el ícono del **candado 🔒** en la barra de direcciones de tu navegador, cambia el permiso de ubicación a 'Permitir' y luego actualiza esta página o intenta enviar otro mensaje.",
+            sender: 'faro'
+          };
+          setMessages((prev) => [...prev, insistMsg]);
+        }, 1500); // Pequeño retraso para que lea el primer mensaje
+      }
+
     } catch (error) {
       console.error("Error fetching Faro response:", error);
     } finally {

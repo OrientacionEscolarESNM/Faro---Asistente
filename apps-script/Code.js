@@ -10,10 +10,19 @@ function doPost(e) {
   
   try {
     var data = JSON.parse(e.postData.contents);
+    
+    // Si es una alerta de emergencia disparada directamente desde el Frontend
+    if (data.isEmergencyAlert) {
+      sendTelegramAlert(data.message, data.userName, data.userAge, data.location);
+      output.setContent(JSON.stringify({ success: true, alerted: true }));
+      return output;
+    }
+
     var message = data.message;
-    var context = data.context || ""; // Fragmentos relevantes del PDF pasados por el cliente
+    var context = data.context || ""; // Fragmentos relevantes del PDF
     var userName = data.userName || "";
     var userAge = data.userAge || "";
+    var location = data.location || null;
     
     if (!message) {
       throw new Error("El mensaje del usuario está vacío.");
@@ -21,6 +30,14 @@ function doPost(e) {
     
     // Obtener la respuesta de la cadena de IAs
     var aiResponse = getAIChatResponse(message, context, userName, userAge);
+    
+    // Si la IA detecta riesgo por su cuenta y agrega el tag
+    if (aiResponse.indexOf("[ALERTA_RIESGO]") !== -1) {
+      // Enviar la alerta
+      sendTelegramAlert(message, userName, userAge, location);
+      // Limpiar el tag para que no se muestre al usuario
+      aiResponse = aiResponse.replace(/\[ALERTA_RIESGO\]/g, "").trim();
+    }
     
     output.setContent(JSON.stringify({
       success: true,
@@ -73,7 +90,7 @@ function getAIChatResponse(userMessage, context, userName, userAge) {
     "- SIEMPRE debes escribir con perfecta ortografía en español. Revisa y evita a toda costa truncamientos extraños, palabras cortadas o inventadas (por ejemplo: usa 'Puedo' en lugar de palabras inexistentes como 'Puedly').\n" +
     "- SIEMPRE, de manera suave, empática y proactiva a lo largo de la conversación, debes ir sugiriendo al usuario la opción de comunicarse directamente con la Línea Amiga (322 784 2874) si requiere un apoyo profesional especializado y directo.\n" +
     "- Tus respuestas DEBEN ser sumamente cortas, empáticas y concisas (máximo 2 a 3 párrafos cortos de 2 o 3 líneas cada uno). Evita respuestas largas o textos pesados para responder con la mayor agilidad posible.\n" +
-    "- Si el usuario muestra tendencias suicidas o de autolesión, debes activar inmediatamente un protocolo de alerta clara, recomendar llamar a Bomberos Monterrey (312 550 0806) o a la Línea Amiga (322 784 2874) y dirigirse al menú de emergencias de la app.\n" +
+    "- Si el usuario muestra tendencias suicidas o de autolesión, debes activar inmediatamente un protocolo de alerta clara, recomendar llamar a Bomberos Monterrey (312 550 0806) o a la Línea Amiga (322 784 2874) y dirigirse al menú de emergencias de la app. ADEMÁS, es ESTRICTAMENTE OBLIGATORIO que incluyas el texto exacto [ALERTA_RIESGO] al principio de tu respuesta para que el sistema active las alarmas silenciosas.\n" +
     "- Mantén tus respuestas concisas, claras y reconfortantes.";
 
   var prompt = "Mensaje del estudiante: " + userMessage;
@@ -273,4 +290,81 @@ function callMistral(apiKey, prompt, systemInstruction) {
   
   var json = JSON.parse(resText);
   return json.choices[0].message.content;
+}
+
+/**
+ * Servicio de Alerta vía Telegram
+ */
+function sendTelegramAlert(userMessage, userName, userAge, location) {
+  var props = PropertiesService.getScriptProperties().getProperties();
+  var token = props.TELEGRAM_BOT_TOKEN;
+  var chatId = props.TELEGRAM_CHAT_ID;
+  
+  if (!token || !chatId) {
+    console.error("Faltan las credenciales de Telegram (TELEGRAM_BOT_TOKEN o TELEGRAM_CHAT_ID).");
+    return;
+  }
+  
+  var name = userName || "Estudiante Anónimo";
+  var age = userAge ? userAge + " años" : "Edad desconocida";
+  var locText = "Ubicación no proporcionada o denegada por el usuario.";
+  
+  var hasCoordinates = false;
+  var lat = null;
+  var lng = null;
+
+  if (location && typeof location === 'object' && location.lat && location.lng) {
+    hasCoordinates = true;
+    lat = location.lat;
+    lng = location.lng;
+    locText = "📍 Ubicación obtenida (Ver mapa nativo abajo)\nEnlace Web: https://maps.google.com/?q=" + lat + "," + lng;
+  } else if (typeof location === 'string') {
+    locText = "📍 Estado de ubicación: " + location;
+  }
+  
+  var textAlert = "🔴 <b>ALERTA DE RIESGO INMINENTE</b> 🔴\n\n" +
+                  "<b>Usuario:</b> " + name + " (" + age + ")\n" +
+                  "<b>Mensaje del estudiante:</b>\n<i>\"" + userMessage + "\"</i>\n\n" +
+                  locText + "\n\n" +
+                  "<i>Notificación automática del sistema Faro.</i>";
+                  
+  // 1. Enviar Mensaje de Texto (Contiene detalles y link de Maps)
+  var urlMessage = "https://api.telegram.org/bot" + token + "/sendMessage";
+  var payloadMessage = {
+    "chat_id": chatId,
+    "text": textAlert,
+    "parse_mode": "HTML"
+  };
+  
+  try {
+    UrlFetchApp.fetch(urlMessage, {
+      "method": "post",
+      "contentType": "application/json",
+      "payload": JSON.stringify(payloadMessage),
+      "muteHttpExceptions": true
+    });
+  } catch(e) {
+    console.error("Error enviando mensaje a Telegram: " + e.toString());
+  }
+  
+  // 2. Enviar Mapa Nativo Interactivo de Telegram (Solo si hay coordenadas)
+  if (hasCoordinates) {
+    var urlLocation = "https://api.telegram.org/bot" + token + "/sendLocation";
+    var payloadLocation = {
+      "chat_id": chatId,
+      "latitude": lat,
+      "longitude": lng
+    };
+    
+    try {
+      UrlFetchApp.fetch(urlLocation, {
+        "method": "post",
+        "contentType": "application/json",
+        "payload": JSON.stringify(payloadLocation),
+        "muteHttpExceptions": true
+      });
+    } catch(e) {
+      console.error("Error enviando ubicación a Telegram: " + e.toString());
+    }
+  }
 }

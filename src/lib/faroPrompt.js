@@ -53,7 +53,7 @@ const searchKnowledge = async (query) => {
 /**
  * Función principal para obtener la respuesta de Faro
  */
-export const getFaroResponse = async (userMessage, userName = "", userAge = "") => {
+export const getFaroResponse = async (userMessage, userName = "", userAge = "", location = null) => {
   try {
     const lowerMsg = userMessage.toLowerCase();
     
@@ -62,11 +62,27 @@ export const getFaroResponse = async (userMessage, userName = "", userAge = "") 
     const isExtremeCrisis = crisisKeywords.some(word => lowerMsg.includes(word));
     
     if (isExtremeCrisis) {
-      return "🚨 **PROTOCOLO DE EMERGENCIA ACTIVADO:** He detectado términos asociados a un riesgo vital inmediato. Como asistente de Inteligencia Artificial, **no puedo reemplazar la ayuda humana**. Por favor:\n\n" +
-             "1. Llama inmediatamente a la **Línea Amiga Casanare (322 784 2874)** o a **Bomberos Monterrey (312 550 0806)**.\n" +
-             "2. No te quedes solo/a, busca de inmediato a tu orientador escolar (321 463 7057) o a un adulto protector.\n" +
-             "3. Dirígete a la sección de **Emergencia** en el menú lateral para ver más números y contactos directos.\n\n" +
-             "Tu vida e integridad física son lo más importante. Estamos listos para apoyarte.";
+      // Disparar la alerta silenciosa al backend en segundo plano
+      fetch(APPS_SCRIPT_URL, {
+        method: 'POST',
+        headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+        body: JSON.stringify({
+          isEmergencyAlert: true,
+          message: userMessage,
+          userName: userName,
+          userAge: userAge,
+          location: location
+        })
+      }).catch(err => console.error("Error disparando alerta local:", err));
+
+      return {
+        isEmergency: true,
+        text: "🚨 **PROTOCOLO DE EMERGENCIA ACTIVADO:** He detectado términos asociados a un riesgo vital inmediato. Como asistente de Inteligencia Artificial, **no puedo reemplazar la ayuda humana**. Por favor:\n\n" +
+               "1. Llama inmediatamente a la **Línea Amiga Casanare (322 784 2874)** o a **Bomberos Monterrey (312 550 0806)**.\n" +
+               "2. No te quedes solo/a, busca de inmediato a tu orientador escolar (321 463 7057) o a un adulto protector.\n" +
+               "3. Dirígete a la sección de **Emergencia** en el menú lateral para ver más números y contactos directos.\n\n" +
+               "Tu vida e integridad física son lo más importante. Estamos listos para apoyarte."
+      };
     }
 
     // 2. Buscar fragmentos relevantes en la base de conocimiento local (PDF indexado)
@@ -89,7 +105,8 @@ export const getFaroResponse = async (userMessage, userName = "", userAge = "") 
         message: userMessage,
         context: context,
         userName: userName,
-        userAge: userAge
+        userAge: userAge,
+        location: location
       })
     });
     
@@ -99,7 +116,7 @@ export const getFaroResponse = async (userMessage, userName = "", userAge = "") 
     
     const data = await response.json();
     if (data.success) {
-      return data.response;
+      return { isEmergency: false, text: data.response };
     } else {
       console.error("Error devuelto por la API del Backend:", data.error);
       throw new Error(data.error);
@@ -107,8 +124,11 @@ export const getFaroResponse = async (userMessage, userName = "", userAge = "") 
   } catch (error) {
     console.error("Error en getFaroResponse:", error);
     // Fallback completo si falla la red o el backend
-    return "Hola. Disculpa, estoy experimentando dificultades de conexión con mi servidor. " +
-           "Recuerda que si necesitas orientación o estás en una crisis emocional, puedes llamar a la **Línea Amiga (322 784 2874)** o contactar a Orientación Escolar al **321 463 7057**. " +
-           "Por favor, intenta enviarme tu mensaje nuevamente en unos momentos.";
+    return {
+      isEmergency: false,
+      text: "Hola. Disculpa, estoy experimentando dificultades de conexión con mi servidor. " +
+             "Recuerda que si necesitas orientación o estás en una crisis emocional, puedes llamar a la **Línea Amiga (322 784 2874)** o contactar a Orientación Escolar al **321 463 7057**. " +
+             "Por favor, intenta enviarme tu mensaje nuevamente en unos momentos."
+    };
   }
 };
