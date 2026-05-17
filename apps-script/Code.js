@@ -476,3 +476,27 @@ function getDayNameInSpanish(dayNum) {
   return days[dayNum] || "Lunes";
 }
 
+/**
+ * Ejecuta esta función de prueba en el editor de Apps Script (dándole al botón "Ejecutar")
+ * para autorizar el acceso a Google Sheets y verificar la conexión de forma segura.
+ */
+function testSheetsConnection() {
+  var props = PropertiesService.getScriptProperties().getProperties();
+  var sheetId = props.SPREADSHEET_ID;
+  if (!sheetId) {
+    Logger.log("❌ ERROR: SPREADSHEET_ID no está configurado en las propiedades del script.");
+    return;
+  }
+  
+  try {
+    var ss = SpreadsheetApp.openById(sheetId);
+    var sheet = ss.getSheets()[0];
+    Logger.log("✅ ÉXITO: Conexión establecida perfectamente.");
+    Logger.log("Nombre de la hoja: " + sheet.getName());
+    Logger.log("Cabeceras detectadas: " + JSON.stringify(sheet.getDataRange().getValues()[0]));
+  } catch (e) {
+    Logger.log("❌ ERROR al conectar con la hoja: " + e.toString());
+  }
+}
+
+
