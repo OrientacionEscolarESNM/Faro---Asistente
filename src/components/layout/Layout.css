@@ -92,19 +92,20 @@
 
 .emergency-nav {
   margin-top: 1rem;
-  color: var(--accent-emergency);
-  border: 1px solid rgba(239, 68, 68, 0.2);
+  background-color: var(--accent-emergency) !important;
+  color: #ffffff !important;
+  border: none !important;
 }
 
 .emergency-nav:hover {
-  background-color: rgba(239, 68, 68, 0.1);
-  color: var(--accent-emergency);
+  background-color: var(--accent-emergency-hover) !important;
+  color: #ffffff !important;
 }
 
 .emergency-nav.active {
-  background-color: var(--accent-emergency);
-  color: white;
-  box-shadow: 0 4px 12px rgba(239, 68, 68, 0.3);
+  background-color: var(--accent-emergency-hover) !important;
+  color: #ffffff !important;
+  box-shadow: 0 4px 12px rgba(239, 68, 68, 0.3) !important;
 }
 
 .sidebar-footer {
