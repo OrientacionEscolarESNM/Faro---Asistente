@@ -1,12 +1,39 @@
 import { NavLink } from 'react-router-dom';
-import { MessageSquare, Phone, HeartHandshake, Info, Shield, Menu, X } from 'lucide-react';
-import { useState } from 'react';
+import { MessageSquare, Phone, HeartHandshake, Info, Shield, Menu, X, Sun, Moon } from 'lucide-react';
+import { useState, useEffect } from 'react';
 import './Layout.css';
 
 export default function Sidebar() {
   const [isOpen, setIsOpen] = useState(false);
+  const [isDark, setIsDark] = useState(false);
+
+  // Initialize theme from localStorage or system preference
+  useEffect(() => {
+    const savedTheme = localStorage.getItem('faro-theme');
+    const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+    
+    if (savedTheme === 'dark' || (!savedTheme && prefersDark)) {
+      setIsDark(true);
+      document.documentElement.setAttribute('data-theme', 'dark');
+    } else {
+      setIsDark(false);
+      document.documentElement.removeAttribute('data-theme');
+    }
+  }, []);
 
   const toggleSidebar = () => setIsOpen(!isOpen);
+
+  const toggleTheme = () => {
+    if (isDark) {
+      document.documentElement.removeAttribute('data-theme');
+      localStorage.setItem('faro-theme', 'light');
+      setIsDark(false);
+    } else {
+      document.documentElement.setAttribute('data-theme', 'dark');
+      localStorage.setItem('faro-theme', 'dark');
+      setIsDark(true);
+    }
+  };
 
   const navItems = [
     { path: '/chat', icon: <MessageSquare size={20} />, label: 'Chat con Faro' },
@@ -48,6 +75,15 @@ export default function Sidebar() {
         </nav>
 
         <div className="sidebar-footer">
+          <button 
+            className="theme-toggle btn btn-outline" 
+            onClick={toggleTheme}
+            style={{ width: '100%', marginBottom: '1rem', justifyContent: 'center' }}
+            title={`Cambiar a ${isDark ? 'modo claro' : 'modo oscuro'}`}
+          >
+            {isDark ? <Sun size={18} /> : <Moon size={18} />}
+            <span>{isDark ? 'Modo Claro' : 'Modo Oscuro'}</span>
+          </button>
           <p>© {new Date().getFullYear()} Faro</p>
         </div>
       </div>
