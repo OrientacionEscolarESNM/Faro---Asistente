@@ -95,9 +95,17 @@ export default function Chat() {
     setMessages((prev) => [...prev, userMsg]);
     setIsTyping(true);
 
+    // Intentar recuperar la ubicación dinámicamente si no está en memoria
+    let currentLocation = locationData;
+    if (!currentLocation || !currentLocation.coords) {
+      currentLocation = await getUserLocation();
+      setLocationData(currentLocation);
+      sessionStorage.setItem('faro_location', JSON.stringify(currentLocation));
+    }
+
     try {
       // location puede ser null o tener datos
-      let responseObj = await getFaroResponse(text, userName, userAge, locationData?.coords || locationData?.status || "No solicitada");
+      let responseObj = await getFaroResponse(text, userName, userAge, currentLocation?.coords || currentLocation?.status || "No solicitada");
       let responseText = responseObj.text;
       const isEmergency = responseObj.isEmergency;
       
@@ -109,7 +117,7 @@ export default function Chat() {
       setMessages((prev) => [...prev, faroMsg]);
 
       // Si es emergencia y la ubicación fue bloqueada o no está disponible, insistir fuertemente
-      if (isEmergency && (!locationData || !locationData.coords)) {
+      if (isEmergency && (!currentLocation || !currentLocation.coords)) {
         setTimeout(() => {
           const insistMsg = {
             id: Date.now() + 2,
