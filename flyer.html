@@ -1,0 +1,417 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Flyer Faro - Asistente Escolar</title>
+  <!-- Tipografía moderna Google Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;800&family=Plus+Jakarta+Sans:wght@400;600;700&display=swap" rel="stylesheet">
+  
+  <style>
+    :root {
+      --primary: #1e3a8a;
+      --primary-light: #3b82f6;
+      --secondary: #10b981;
+      --dark: #0f172a;
+      --light: #f8fafc;
+      --gray: #64748b;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      font-family: 'Plus Jakarta Sans', sans-serif;
+      background-color: #e2e8f0;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      min-height: 100vh;
+      padding: 40px 20px;
+      color: var(--dark);
+    }
+
+    /* Contenedor del Flyer (Tamaño Carta/A4 en proporción) */
+    .flyer-container {
+      background: white;
+      width: 790px;
+      height: 1118px; /* Proporción estándar de hoja A4 */
+      box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+      border-radius: 20px;
+      overflow: hidden;
+      position: relative;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      padding: 60px;
+      border: 1px solid #e2e8f0;
+    }
+
+    /* Fondo decorativo moderno */
+    .flyer-container::before {
+      content: '';
+      position: absolute;
+      top: -200px;
+      right: -200px;
+      width: 500px;
+      height: 500px;
+      background: radial-gradient(circle, rgba(59,130,246,0.15) 0%, rgba(255,255,255,0) 70%);
+      border-radius: 50%;
+      pointer-events: none;
+    }
+
+    .flyer-container::after {
+      content: '';
+      position: absolute;
+      bottom: -150px;
+      left: -150px;
+      width: 450px;
+      height: 450px;
+      background: radial-gradient(circle, rgba(16,185,129,0.1) 0%, rgba(255,255,255,0) 70%);
+      border-radius: 50%;
+      pointer-events: none;
+    }
+
+    /* Cabecera */
+    .header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      border-bottom: 2px solid #f1f5f9;
+      padding-bottom: 25px;
+    }
+
+    .institution-info {
+      display: flex;
+      flex-direction: column;
+    }
+
+    .institution-name {
+      font-family: 'Outfit', sans-serif;
+      font-weight: 800;
+      font-size: 16px;
+      letter-spacing: 0.1em;
+      color: var(--primary);
+      text-transform: uppercase;
+    }
+
+    .institution-sub {
+      font-size: 13px;
+      color: var(--gray);
+      font-weight: 600;
+    }
+
+    .badge-faro {
+      background: linear-gradient(135deg, var(--primary) 0%, var(--primary-light) 100%);
+      color: white;
+      padding: 8px 18px;
+      border-radius: 50px;
+      font-family: 'Outfit', sans-serif;
+      font-weight: 700;
+      font-size: 14px;
+      box-shadow: 0 4px 10px rgba(59, 130, 246, 0.25);
+    }
+
+    /* Contenido Principal */
+    .hero-section {
+      text-align: center;
+      margin-top: 40px;
+    }
+
+    .hero-title {
+      font-family: 'Outfit', sans-serif;
+      font-size: 42px;
+      font-weight: 800;
+      line-height: 1.15;
+      color: var(--dark);
+      margin-bottom: 20px;
+    }
+
+    .hero-title span {
+      background: linear-gradient(135deg, var(--primary) 0%, var(--primary-light) 60%, var(--secondary) 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+
+    .hero-desc {
+      font-size: 18px;
+      color: var(--gray);
+      line-height: 1.6;
+      max-width: 620px;
+      margin: 0 auto;
+      font-weight: 400;
+    }
+
+    /* Características (Bloques de Beneficios) */
+    .features-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 25px;
+      margin: 50px 0;
+    }
+
+    .feature-card {
+      background: #f8fafc;
+      border-radius: 16px;
+      padding: 25px 20px;
+      text-align: center;
+      border: 1px solid #f1f5f9;
+      transition: all 0.3s ease;
+    }
+
+    .feature-icon {
+      font-size: 32px;
+      margin-bottom: 12px;
+      display: inline-block;
+    }
+
+    .feature-card h3 {
+      font-family: 'Outfit', sans-serif;
+      font-size: 16px;
+      font-weight: 700;
+      color: var(--primary);
+      margin-bottom: 8px;
+    }
+
+    .feature-card p {
+      font-size: 12.5px;
+      color: var(--gray);
+      line-height: 1.5;
+    }
+
+    /* Zona de QR y Llamado a la Acción */
+    .cta-box {
+      background: linear-gradient(145deg, #ffffff 0%, #f1f5f9 100%);
+      border: 2px dashed #cbd5e1;
+      border-radius: 24px;
+      padding: 40px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 30px;
+      margin-bottom: 30px;
+    }
+
+    .cta-text {
+      flex: 1;
+    }
+
+    .cta-badge {
+      display: inline-block;
+      background: rgba(16, 185, 129, 0.1);
+      color: var(--secondary);
+      padding: 6px 14px;
+      border-radius: 50px;
+      font-size: 12px;
+      font-weight: 700;
+      margin-bottom: 15px;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+
+    .cta-headline {
+      font-family: 'Outfit', sans-serif;
+      font-size: 26px;
+      font-weight: 800;
+      color: var(--dark);
+      line-height: 1.25;
+      margin-bottom: 10px;
+    }
+
+    .cta-subline {
+      font-size: 14px;
+      color: var(--gray);
+      line-height: 1.4;
+    }
+
+    .qr-wrapper {
+      background: white;
+      padding: 16px;
+      border-radius: 20px;
+      box-shadow: 0 10px 25px rgba(15, 23, 42, 0.08);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      border: 1px solid #e2e8f0;
+    }
+
+    .qr-code {
+      width: 160px;
+      height: 160px;
+      margin-bottom: 10px;
+    }
+
+    .qr-url {
+      font-size: 11px;
+      font-family: monospace;
+      color: var(--primary-light);
+      font-weight: bold;
+    }
+
+    /* Pie de página */
+    .footer {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      border-top: 1px solid #f1f5f9;
+      padding-top: 25px;
+      font-size: 12px;
+      color: var(--gray);
+    }
+
+    .footer-left {
+      font-weight: 600;
+    }
+
+    .footer-right {
+      display: flex;
+      gap: 15px;
+    }
+
+    .footer-right span {
+      display: flex;
+      align-items: center;
+      gap: 5px;
+    }
+
+    /* Botón de impresión (Se oculta al imprimir) */
+    .print-btn {
+      position: fixed;
+      bottom: 30px;
+      right: 30px;
+      background: var(--dark);
+      color: white;
+      border: none;
+      padding: 15px 30px;
+      border-radius: 50px;
+      font-family: 'Outfit', sans-serif;
+      font-weight: 700;
+      font-size: 16px;
+      cursor: pointer;
+      box-shadow: 0 10px 30px rgba(15, 23, 42, 0.3);
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      z-index: 100;
+      transition: all 0.3s ease;
+    }
+
+    .print-btn:hover {
+      transform: translateY(-3px);
+      box-shadow: 0 15px 35px rgba(15, 23, 42, 0.4);
+      background: var(--primary);
+    }
+
+    /* =========================================
+       Estilos específicos para la Impresión (Ctrl + P)
+       ========================================= */
+    @media print {
+      body {
+        background-color: white;
+        padding: 0;
+        margin: 0;
+        display: block;
+      }
+
+      .print-btn {
+        display: none; /* Ocultar el botón flotante */
+      }
+
+      .flyer-container {
+        width: 100%;
+        height: 100vh;
+        box-shadow: none;
+        border: none;
+        border-radius: 0;
+        padding: 40px; /* Margen menor para aprovechar la hoja */
+      }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Botón flotante para Imprimir -->
+  <button class="print-btn" onclick="window.print()">
+    🖨️ Imprimir Flyer / Guardar PDF
+  </button>
+
+  <!-- Contenedor del Flyer -->
+  <div class="flyer-container">
+    
+    <!-- Cabecera -->
+    <div class="header">
+      <div class="institution-info">
+        <span class="institution-name">Normal Superior de Monterrey</span>
+        <span class="institution-sub">Departamento de Orientación Escolar — Casanare</span>
+      </div>
+      <div class="badge-faro">
+        💡 Asistente Virtual Faro
+      </div>
+    </div>
+
+    <!-- Sección Hero (Mensaje persuasivo inicial) -->
+    <div class="hero-section">
+      <h1 class="hero-title">
+        ¿Necesitas hablar con alguien?<br>
+        <span>No estás solo en esto.</span>
+      </h1>
+      <p class="hero-desc">
+        A veces el camino de la vida y el estudio se siente difícil. Cuando sientas estrés, tristeza, dudas o simplemente quieras expresarte en un lugar libre de juicios, **Faro** está aquí para escucharte y guiarte con total cariño.
+      </p>
+    </div>
+
+    <!-- Beneficios clave -->
+    <div class="features-grid">
+      <div class="feature-card">
+        <span class="feature-icon">🔒</span>
+        <h3>100% Confidencial</h3>
+        <p>Tu privacidad es sagrada. Un rincón seguro y respetuoso para desahogarte con tranquilidad.</p>
+      </div>
+      <div class="feature-card">
+        <span class="feature-icon">⚡</span>
+        <h3>Orientación y Rutas</h3>
+        <p>Encuentra información del manual de convivencia escolar, consejos de estudio y herramientas emocionales.</p>
+      </div>
+      <div class="feature-card">
+        <span class="feature-icon">🤝</span>
+        <h3>Apoyo Humano</h3>
+        <p>Faro está conectado directamente con tu Orientadora Escolar y redes vitales de emergencia de la región.</p>
+      </div>
+    </div>
+
+    <!-- Caja de Acción y QR -->
+    <div class="cta-box">
+      <div class="cta-text">
+        <span class="cta-badge">Acceso Directo e Inmediato</span>
+        <h2 class="cta-headline">Escanea y conversa con Faro ahora</h2>
+        <p class="cta-subline">
+          Disponible las 24 horas del día, los 7 días de la semana. Puedes acceder desde tu celular, tablet o computadora escaneando el código de al lado.
+        </p>
+      </div>
+      <div class="qr-wrapper">
+        <!-- Generación del QR real usando la API pública qrserver.com -->
+        <img class="qr-code" src="https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=https://orientacionescolaresnm.github.io/Faro---Asistente/&margin=10" alt="Código QR de Faro Asistente">
+        <span class="qr-url">faro.esnm</span>
+      </div>
+    </div>
+
+    <!-- Pie de página -->
+    <div class="footer">
+      <div class="footer-left">
+        ✨ Un proyecto diseñado para tu bienestar y cuidado vital.
+      </div>
+      <div class="footer-right">
+        <span>📞 Línea Amiga: 322 784 2874</span>
+        <span>🏫 Monterrey, Casanare</span>
+      </div>
+    </div>
+
+  </div>
+
+</body>
+</html>
