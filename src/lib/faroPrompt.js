@@ -2,7 +2,7 @@
  * Servicio de integración del asistente Faro con Google Apps Script y RAG Local
  */
 
-const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbw8b8y2wALhe7Bfxau02dPI6Nir52KKT-783MGBcj8vF8sCEmppCLRc7tn_1cEN5RIm/exec";
+const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbwvNHYH0mJkwVP-IFIJbxPVlB-y6gdNvOV6cPnOdnSYMIcFl7Sx0uys8g8jA9eJod6L/exec";
 
 // Cargar la base de conocimiento en memoria
 let knowledgeBase = [];
