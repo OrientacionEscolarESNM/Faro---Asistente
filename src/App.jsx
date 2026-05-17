@@ -1,4 +1,4 @@
-import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
+import { HashRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import AppLayout from './components/layout/AppLayout';
 import Chat from './pages/Chat';
 import Emergency from './pages/Emergency';
@@ -8,7 +8,7 @@ import Privacy from './pages/Privacy';
 
 function App() {
   return (
-    <Router basename="/Faro---Asistente">
+    <Router>
       <Routes>
         <Route path="/" element={<AppLayout />}>
           <Route index element={<Navigate to="/chat" replace />} />
