@@ -58,7 +58,7 @@ export const getFaroResponse = async (userMessage, userName = "", userAge = "", 
     const lowerMsg = userMessage.toLowerCase();
     
     // 1. Detección local inmediata de crisis extrema (Seguridad primero)
-    const crisisKeywords = ['suicidio', 'suicidar', 'matarme', 'cortarme', 'ahorcarme', 'morirme', 'abuso sexual', 'me pegaron', 'violación'];
+    const crisisKeywords = ['suicidio', 'suicidar', 'matarme', 'matar', 'cortarme', 'ahorcarme', 'morirme', 'abuso sexual', 'me pegaron', 'violación', 'hacerme daño', 'no quiero vivir', 'desaparecer'];
     const isExtremeCrisis = crisisKeywords.some(word => lowerMsg.includes(word));
     
     if (isExtremeCrisis) {
@@ -116,7 +116,7 @@ export const getFaroResponse = async (userMessage, userName = "", userAge = "", 
     
     const data = await response.json();
     if (data.success) {
-      return { isEmergency: false, text: data.response };
+      return { isEmergency: data.isEmergency === true, text: data.response };
     } else {
       console.error("Error devuelto por la API del Backend:", data.error);
       throw new Error(data.error);

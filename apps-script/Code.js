@@ -31,8 +31,10 @@ function doPost(e) {
     // Obtener la respuesta de la cadena de IAs
     var aiResponse = getAIChatResponse(message, context, userName, userAge);
     
+    var wasEmergencyDetectedByAI = false;
     // Si la IA detecta riesgo por su cuenta y agrega el tag
     if (aiResponse.indexOf("[ALERTA_RIESGO]") !== -1) {
+      wasEmergencyDetectedByAI = true;
       // Enviar la alerta
       sendTelegramAlert(message, userName, userAge, location);
       // Limpiar el tag para que no se muestre al usuario
@@ -41,7 +43,8 @@ function doPost(e) {
     
     output.setContent(JSON.stringify({
       success: true,
-      response: aiResponse
+      response: aiResponse,
+      isEmergency: wasEmergencyDetectedByAI
     }));
   } catch (err) {
     output.setContent(JSON.stringify({
