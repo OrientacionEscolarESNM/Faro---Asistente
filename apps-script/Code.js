@@ -11,31 +11,25 @@ function doPost(e) {
   try {
     var data = JSON.parse(e.postData.contents);
     
-    // Si es una alerta de emergencia disparada directamente desde el Frontend
-    if (data.isEmergencyAlert) {
-      sendTelegramAlert(data.message, data.userName, data.userAge, data.location);
-      output.setContent(JSON.stringify({ success: true, alerted: true }));
-      return output;
-    }
-
     var message = data.message;
     var context = data.context || ""; // Fragmentos relevantes del PDF
     var userName = data.userName || "";
     var userAge = data.userAge || "";
     var location = data.location || null;
+    var forceEmergency = data.forceEmergency || false;
     
     if (!message) {
       throw new Error("El mensaje del usuario está vacío.");
     }
     
     // Obtener la respuesta de la cadena de IAs
-    var aiResponse = getAIChatResponse(message, context, userName, userAge);
+    var aiResponse = getAIChatResponse(message, context, userName, userAge, forceEmergency);
     
     var wasEmergencyDetectedByAI = false;
-    // Si la IA detecta riesgo por su cuenta y agrega el tag
-    if (aiResponse.indexOf("[ALERTA_RIESGO]") !== -1) {
+    // Si la IA detecta riesgo por su cuenta o el frontend lo forzó
+    if (forceEmergency || aiResponse.indexOf("[ALERTA_RIESGO]") !== -1) {
       wasEmergencyDetectedByAI = true;
-      // Enviar la alerta
+      // Enviar la alerta silenciosamente a Telegram
       sendTelegramAlert(message, userName, userAge, location);
       // Limpiar el tag para que no se muestre al usuario
       aiResponse = aiResponse.replace(/\[ALERTA_RIESGO\]/g, "").trim();
@@ -59,7 +53,7 @@ function doPost(e) {
 /**
  * Cadena de IAs con Fallback automático.
  */
-function getAIChatResponse(userMessage, context, userName, userAge) {
+function getAIChatResponse(userMessage, context, userName, userAge, forceEmergency) {
   var props = PropertiesService.getScriptProperties().getProperties();
   
   var geminiKey = props.GEMINI_API_KEY;
@@ -88,13 +82,15 @@ function getAIChatResponse(userMessage, context, userName, userAge) {
 
   systemInstruction += "IMPORTANTE: Utiliza la siguiente información oficial del 'Manual Integral Faro' para responder con precisión y seguridad. Toda tu respuesta debe estar basada de forma estricta en estos datos oficiales:\n\n" +
     context + "\n\n" +
-    "REGLAS DE CONDUCTA, ORTOGRAFÍA, IDIOMA Y VELOCIDAD:\n" +
-    "- Responde SIEMPRE en el mismo idioma en el que te hable el usuario (por defecto español). Prohíbe mezclar palabras o anglicismos en inglés (como 'lately', 'sorry', 'anyway', etc.) si te hablan en español. Tu redacción debe ser 100% natural y gramaticalmente correcta.\n" +
-    "- SIEMPRE debes escribir con perfecta ortografía en español. Revisa y evita a toda costa truncamientos extraños, palabras cortadas o inventadas (por ejemplo: usa 'Puedo' en lugar de palabras inexistentes como 'Puedly').\n" +
-    "- SIEMPRE, de manera suave, empática y proactiva a lo largo de la conversación, debes ir sugiriendo al usuario la opción de comunicarse directamente con la Línea Amiga (322 784 2874) si requiere un apoyo profesional especializado y directo.\n" +
-    "- Tus respuestas DEBEN ser sumamente cortas, empáticas y concisas (máximo 2 a 3 párrafos cortos de 2 o 3 líneas cada uno). Evita respuestas largas o textos pesados para responder con la mayor agilidad posible.\n" +
-    "- Si el usuario muestra tendencias suicidas o de autolesión, debes activar inmediatamente un protocolo de alerta clara, recomendar llamar a Bomberos Monterrey (312 550 0806) o a la Línea Amiga (322 784 2874) y dirigirse al menú de emergencias de la app. ADEMÁS, es ESTRICTAMENTE OBLIGATORIO que incluyas el texto exacto [ALERTA_RIESGO] al principio de tu respuesta para que el sistema active las alarmas silenciosas.\n" +
-    "- Mantén tus respuestas concisas, claras y reconfortantes.";
+    "REGLAS DE CONDUCTA Y EMERGENCIAS:\n" +
+    "- Responde SIEMPRE en el mismo idioma en el que te hable el usuario. Tu redacción debe ser 100% natural, empática y perfecta.\n" +
+    "- Tus respuestas DEBEN ser sumamente cortas, empáticas y concisas.\n" +
+    "- Si el usuario muestra intenciones suicidas, de autolesión o manifiesta explícita o implícitamente que no quiere vivir, tu respuesta debe ser EXTREMADAMENTE persuasiva, cálida, humana y de contención emocional profunda para disuadirlo de hacerse daño. Hazle sentir que su vida es inmensamente valiosa y que no está solo en este dolor. Tras brindarle esa fuerte contención emocional inicial, guíalo suavemente y con cariño a buscar ayuda humana proporcionando los números de la Línea Amiga (322 784 2874) o la Orientación Escolar ESNM (321 463 7057). NUNCA uses frases robóticas ni alarmantes como 'Protocolo de emergencia activado'. Sé un apoyo cercano, de tú a tú.\n" +
+    "- ADEMÁS, es ESTRICTAMENTE OBLIGATORIO que incluyas el texto oculto [ALERTA_RIESGO] al principio de tu respuesta para activar las alarmas del sistema.\n";
+
+  if (forceEmergency) {
+    systemInstruction += "\nATENCIÓN IA: El sistema de seguridad local acaba de detectar que el usuario ingresó palabras de altísimo riesgo. DEBES aplicar el protocolo persuasivo y profundo descrito arriba inmediatamente e incluir [ALERTA_RIESGO].\n";
+  }
 
   var prompt = "Mensaje del estudiante: " + userMessage;
 

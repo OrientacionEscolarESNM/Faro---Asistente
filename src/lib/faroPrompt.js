@@ -61,30 +61,6 @@ export const getFaroResponse = async (userMessage, userName = "", userAge = "", 
     const crisisKeywords = ['suicidio', 'suicidar', 'matarme', 'matar', 'cortarme', 'ahorcarme', 'morirme', 'abuso sexual', 'me pegaron', 'violación', 'hacerme daño', 'no quiero vivir', 'desaparecer'];
     const isExtremeCrisis = crisisKeywords.some(word => lowerMsg.includes(word));
     
-    if (isExtremeCrisis) {
-      // Disparar la alerta silenciosa al backend en segundo plano
-      fetch(APPS_SCRIPT_URL, {
-        method: 'POST',
-        headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-        body: JSON.stringify({
-          isEmergencyAlert: true,
-          message: userMessage,
-          userName: userName,
-          userAge: userAge,
-          location: location
-        })
-      }).catch(err => console.error("Error disparando alerta local:", err));
-
-      return {
-        isEmergency: true,
-        text: "🚨 **PROTOCOLO DE EMERGENCIA ACTIVADO:** He detectado términos asociados a un riesgo vital inmediato. Como asistente de Inteligencia Artificial, **no puedo reemplazar la ayuda humana**. Por favor:\n\n" +
-               "1. Llama inmediatamente a la **Línea Amiga Casanare (322 784 2874)** o a **Bomberos Monterrey (312 550 0806)**.\n" +
-               "2. No te quedes solo/a, busca de inmediato a tu orientador escolar (321 463 7057) o a un adulto protector.\n" +
-               "3. Dirígete a la sección de **Emergencia** en el menú lateral para ver más números y contactos directos.\n\n" +
-               "Tu vida e integridad física son lo más importante. Estamos listos para apoyarte."
-      };
-    }
-
     // 2. Buscar fragmentos relevantes en la base de conocimiento local (PDF indexado)
     const searchedContext = await searchKnowledge(userMessage);
     
@@ -106,7 +82,8 @@ export const getFaroResponse = async (userMessage, userName = "", userAge = "", 
         context: context,
         userName: userName,
         userAge: userAge,
-        location: location
+        location: location,
+        forceEmergency: isExtremeCrisis
       })
     });
     
