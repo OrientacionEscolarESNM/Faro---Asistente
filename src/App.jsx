@@ -8,7 +8,7 @@ import Privacy from './pages/Privacy';
 
 function App() {
   return (
-    <Router>
+    <Router basename="/Faro---Asistente">
       <Routes>
         <Route path="/" element={<AppLayout />}>
           <Route index element={<Navigate to="/chat" replace />} />
