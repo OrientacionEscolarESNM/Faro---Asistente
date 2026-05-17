@@ -50,8 +50,9 @@ function doPost(e) {
       category = "Tristeza/Depresión";
     }
     
+    var userGender = data.userGender || "";
     // Guardar estadísticas anónimas en Google Sheets
-    logSessionToGoogleSheet(sessionId, userAge, category, wasEmergencyDetectedByAI);
+    logSessionToGoogleSheet(sessionId, userAge, category, wasEmergencyDetectedByAI, userGender);
     
     output.setContent(JSON.stringify({
       success: true,
@@ -392,7 +393,7 @@ function sendTelegramAlert(userMessage, userName, userAge, location) {
 /**
  * Registra o actualiza la sesión anónima en Google Sheets.
  */
-function logSessionToGoogleSheet(sessionId, userAge, category, wasEmergency) {
+function logSessionToGoogleSheet(sessionId, userAge, category, wasEmergency, userGender) {
   if (!sessionId) {
     Logger.log("logSessionToGoogleSheet: sessionId está vacío.");
     return;
@@ -429,27 +430,27 @@ function logSessionToGoogleSheet(sessionId, userAge, category, wasEmergency) {
     
     if (foundRowIndex !== -1) {
       // El sessionId ya existe, actualizamos
-      var currentCount = parseInt(values[foundRowIndex - 1][7], 10) || 0; // Columna H (Total_Mensajes)
-      var existingEmergency = values[foundRowIndex - 1][6]; // Columna G (Alerta_Emergencia)
+      var currentCount = parseInt(values[foundRowIndex - 1][8], 10) || 0; // Columna I (Total_Mensajes) - 0-indexed index 8
+      var existingEmergency = values[foundRowIndex - 1][7]; // Columna H (Alerta_Emergencia) - 0-indexed index 7
       
       // Si alguna vez fue emergencia, se queda en SÍ
       var finalEmergency = (existingEmergency === "SÍ" || wasEmergency) ? "SÍ" : "NO";
       
       // Actualizar categoría (si la nueva es más específica que "Otros" o "Consulta de Información")
-      var currentCategory = values[foundRowIndex - 1][5]; // Columna F
+      var currentCategory = values[foundRowIndex - 1][6]; // Columna G (Categoria_IA) - 0-indexed index 6
       var finalCategory = currentCategory;
       if (category && category !== "Otros" && category !== "Consulta de Información") {
         finalCategory = category;
       }
       
-      sheet.getRange(foundRowIndex, 6).setValue(finalCategory); // Columna F (Categoria_IA)
-      sheet.getRange(foundRowIndex, 7).setValue(finalEmergency); // Columna G (Alerta_Emergencia)
-      sheet.getRange(foundRowIndex, 8).setValue(currentCount + 1); // Columna H (Total_Mensajes)
+      sheet.getRange(foundRowIndex, 7).setValue(finalCategory); // Columna G (Categoria_IA)
+      sheet.getRange(foundRowIndex, 8).setValue(finalEmergency); // Columna H (Alerta_Emergencia)
+      sheet.getRange(foundRowIndex, 9).setValue(currentCount + 1); // Columna I (Total_Mensajes)
       Logger.log("Sesión existente actualizada en Sheets. ID: " + sessionId);
       
     } else {
       // No existe, creamos una nueva fila
-      // ID_Sesion (A), Fecha (B), Dia_Semana (C), Hora_Inicio (D), Edad (E), Categoria_IA (F), Alerta_Emergencia (G), Total_Mensajes (H)
+      // ID_Sesion (A), Fecha (B), Dia_Semana (C), Hora_Inicio (D), Edad (E), Genero (F), Categoria_IA (G), Alerta_Emergencia (H), Total_Mensajes (I)
       var formattedDate = Utilities.formatDate(now, Session.getScriptTimeZone(), "dd/MM/yyyy");
       sheet.appendRow([
         sessionId, 
@@ -457,6 +458,7 @@ function logSessionToGoogleSheet(sessionId, userAge, category, wasEmergency) {
         diaSemana, 
         hora, 
         ageInt, 
+        userGender || "Otro",
         category || "Otros", 
         emergencyStr, 
         1

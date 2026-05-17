@@ -53,7 +53,7 @@ const searchKnowledge = async (query) => {
 /**
  * Función principal para obtener la respuesta de Faro
  */
-export const getFaroResponse = async (userMessage, userName = "", userAge = "", location = null, sessionId = "") => {
+export const getFaroResponse = async (userMessage, userName = "", userAge = "", location = null, sessionId = "", userGender = "") => {
   try {
     const lowerMsg = userMessage.toLowerCase();
     
@@ -84,7 +84,8 @@ export const getFaroResponse = async (userMessage, userName = "", userAge = "", 
         userAge: userAge,
         location: location,
         forceEmergency: isExtremeCrisis,
-        sessionId: sessionId
+        sessionId: sessionId,
+        userGender: userGender
       })
     });
     

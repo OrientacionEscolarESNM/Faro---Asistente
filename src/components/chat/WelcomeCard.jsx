@@ -5,6 +5,7 @@ import './Chat.css';
 export default function WelcomeCard({ onActionClick, onSubmitOnboarding, isOnboarded, userName }) {
   const [name, setName] = useState('');
   const [age, setAge] = useState('');
+  const [gender, setGender] = useState('');
 
   const suggestions = [
     "Me siento triste últimamente",
@@ -15,8 +16,8 @@ export default function WelcomeCard({ onActionClick, onSubmitOnboarding, isOnboa
 
   const handleSubmit = (e) => {
     e.preventDefault();
-    if (name.trim() && age.trim()) {
-      onSubmitOnboarding(name.trim(), age.trim());
+    if (name.trim() && age.trim() && gender) {
+      onSubmitOnboarding(name.trim(), age.trim(), gender);
     }
   };
 
@@ -95,33 +96,65 @@ export default function WelcomeCard({ onActionClick, onSubmitOnboarding, isOnboa
             />
           </div>
 
-          <div className="form-group" style={{ display: 'flex', flexDirection: 'column', gap: '0.4rem', textAlign: 'left' }}>
-            <label htmlFor="student-age" style={{ fontSize: '0.85rem', fontWeight: '600', color: 'var(--text-secondary)' }}>¿Cuántos años tienes?</label>
-            <input 
-              id="student-age"
-              type="number" 
-              min="5"
-              max="100"
-              placeholder="Escribe tu edad..."
-              value={age}
-              onChange={(e) => setAge(e.target.value)}
-              required
-              className="chat-textarea"
-              style={{
-                borderRadius: '8px',
-                padding: '0.75rem',
-                border: '1px solid rgba(255, 255, 255, 0.1)',
-                backgroundColor: 'rgba(255, 255, 255, 0.05)',
-                color: 'var(--text-primary)',
-                fontSize: '0.95rem'
-              }}
-            />
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
+            <div className="form-group" style={{ display: 'flex', flexDirection: 'column', gap: '0.4rem', textAlign: 'left' }}>
+              <label htmlFor="student-age" style={{ fontSize: '0.85rem', fontWeight: '600', color: 'var(--text-secondary)' }}>¿Tu edad?</label>
+              <input 
+                id="student-age"
+                type="number" 
+                min="5"
+                max="100"
+                placeholder="Años..."
+                value={age}
+                onChange={(e) => setAge(e.target.value)}
+                required
+                className="chat-textarea"
+                style={{
+                  borderRadius: '8px',
+                  padding: '0.75rem',
+                  border: '1px solid rgba(255, 255, 255, 0.1)',
+                  backgroundColor: 'rgba(255, 255, 255, 0.05)',
+                  color: 'var(--text-primary)',
+                  fontSize: '0.95rem',
+                  width: '100%',
+                  boxSizing: 'border-box'
+                }}
+              />
+            </div>
+
+            <div className="form-group" style={{ display: 'flex', flexDirection: 'column', gap: '0.4rem', textAlign: 'left' }}>
+              <label htmlFor="student-gender" style={{ fontSize: '0.85rem', fontWeight: '600', color: 'var(--text-secondary)' }}>¿Tu género?</label>
+              <select
+                id="student-gender"
+                value={gender}
+                onChange={(e) => setGender(e.target.value)}
+                required
+                className="chat-textarea"
+                style={{
+                  borderRadius: '8px',
+                  padding: '0.75rem',
+                  border: '1px solid rgba(255, 255, 255, 0.1)',
+                  backgroundColor: 'rgba(255, 255, 255, 0.05)',
+                  color: 'var(--text-primary)',
+                  fontSize: '0.95rem',
+                  width: '100%',
+                  height: '45px',
+                  boxSizing: 'border-box',
+                  cursor: 'pointer'
+                }}
+              >
+                <option value="" disabled style={{ backgroundColor: '#1a1d24', color: 'var(--text-secondary)' }}>Selecciona...</option>
+                <option value="Femenino" style={{ backgroundColor: '#1a1d24' }}>Femenino 👧</option>
+                <option value="Masculino" style={{ backgroundColor: '#1a1d24' }}>Masculino 👦</option>
+                <option value="Otro" style={{ backgroundColor: '#1a1d24' }}>Otro / Prefiero no decirlo</option>
+              </select>
+            </div>
           </div>
 
           <button 
             type="submit" 
             className="btn btn-primary"
-            disabled={!name.trim() || !age.trim()}
+            disabled={!name.trim() || !age.trim() || !gender}
             style={{
               padding: '0.8rem',
               borderRadius: '8px',

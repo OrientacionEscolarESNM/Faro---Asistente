@@ -16,6 +16,7 @@ export default function Chat() {
   // Estado del usuario
   const [userName, setUserName] = useState(() => sessionStorage.getItem('faro_user_name') || '');
   const [userAge, setUserAge] = useState(() => sessionStorage.getItem('faro_user_age') || '');
+  const [userGender, setUserGender] = useState(() => sessionStorage.getItem('faro_user_gender') || '');
   
   // Estado de Ubicación
   const [locationData, setLocationData] = useState(() => {
@@ -48,7 +49,7 @@ export default function Chat() {
   }, [messages, isTyping]);
 
   useEffect(() => {
-    if (userName && userAge && messages.length === 0) {
+    if (userName && userAge && userGender && messages.length === 0) {
       const initGreeting = {
         id: Date.now(),
         text: `¡Hola, ${userName}! 👋 Qué alegría saludarte. Sé que tienes ${userAge} años y estás buscando orientación. Estoy aquí para escucharte y apoyarte con todo mi cariño en este espacio seguro. ¿Cómo te has sentido hoy?`,
@@ -56,7 +57,7 @@ export default function Chat() {
       };
       setMessages([initGreeting]);
     }
-  }, [userName, userAge]);
+  }, [userName, userAge, userGender]);
 
   const getRecommendedEmergencyContact = () => {
     const now = new Date();
@@ -68,11 +69,13 @@ export default function Chat() {
     }
   };
 
-  const handleOnboardingSubmit = async (name, age) => {
+  const handleOnboardingSubmit = async (name, age, gender) => {
     setUserName(name);
     setUserAge(age);
+    setUserGender(gender);
     sessionStorage.setItem('faro_user_name', name);
     sessionStorage.setItem('faro_user_age', age);
+    sessionStorage.setItem('faro_user_gender', gender);
 
     // Intentar obtener ubicación al inicio
     const loc = await getUserLocation();
@@ -114,7 +117,7 @@ export default function Chat() {
 
     try {
       // location puede ser null o tener datos
-      let responseObj = await getFaroResponse(text, userName, userAge, currentLocation?.coords || currentLocation?.status || "No solicitada", sessionId);
+      let responseObj = await getFaroResponse(text, userName, userAge, currentLocation?.coords || currentLocation?.status || "No solicitada", sessionId, userGender);
       let responseText = responseObj.text;
       const isEmergency = responseObj.isEmergency;
       
@@ -152,7 +155,7 @@ export default function Chat() {
     }
   };
 
-  const isOnboarded = userName !== '' && userAge !== '';
+  const isOnboarded = userName !== '' && userAge !== '' && userGender !== '';
 
   return (
     <div className="chat-container animate-fade-in">
