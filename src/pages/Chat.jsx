@@ -109,6 +109,14 @@ export default function Chat() {
       let responseText = responseObj.text;
       const isEmergency = responseObj.isEmergency;
       
+      if (isEmergency) {
+        responseText += `\n\n📌 **Por favor, recuerda que no estás solo y hay personas maravillosas listas para escucharte y apoyarte ahora mismo. Comunícate con ellas con total confianza:**\n\n` +
+                       `📞 **Línea Amiga Casanare:** [322 784 2874](tel:3227842874) *(Disponible las 24 horas, llamada o WhatsApp)*\n` +
+                       `📞 **Orientación Escolar ESNM:** [321 463 7057](tel:3214637057) *(Disponible en jornada escolar)*\n` +
+                       `📞 **Bomberos Monterrey:** [312 550 0806](tel:3125500806) *(Para emergencias vitales inmediatas)*\n\n` +
+                       `*Ellos te atenderán de manera 100% confidencial, libre de juicios y con mucho cariño.*`;
+      }
+      
       if (nextCount === MESSAGE_LIMIT) {
         responseText += `\n\n📢 **Nota de Faro:** He notado que hemos charlado bastante hoy. Me alegra mucho acompañarte, pero recuerda que soy un asistente de Inteligencia Artificial y tengo mis límites. **No puedo reemplazar la atención humana**.\n\nPor el horario en que nos escribes, te recomiendo enormemente que te comuniques con el ${getRecommendedEmergencyContact()}.\n\n¡Muchas gracias por confiar en mí y estaré encantado de volver a conversar en otra sesión!`;
       }
