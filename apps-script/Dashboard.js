@@ -68,19 +68,31 @@ function createDashboard() {
   var genders = {};
   var ages = {};
   
-  // Inicializar horas del día (00 a 23) para que salgan todas en orden en el gráfico
+  // Estructura cronológica fija para los días de la semana
+  var weekdays = {
+    "Lunes": 0,
+    "Martes": 0,
+    "Miércoles": 0,
+    "Jueves": 0,
+    "Viernes": 0,
+    "Sábado": 0,
+    "Domingo": 0
+  };
+  
+  // Inicializar horas del día (00 a 23)
   for (var h = 0; h < 24; h++) {
     hours[h] = 0;
   }
   
   for (var i = 1; i < data.length; i++) {
     var row = data[i];
-    var hourVal = parseInt(row[3], 10);
-    var ageVal = parseInt(row[4], 10);
-    var genderVal = row[5] || "Otro";
-    var catVal = row[6] || "Otros";
-    var emergencyVal = row[7];
-    var msgCountVal = parseInt(row[8], 10) || 0;
+    var dayVal = row[2]; // Columna C (Día de la Semana)
+    var hourVal = parseInt(row[3], 10); // Columna D (Hora de Inicio)
+    var ageVal = parseInt(row[4], 10); // Columna E (Edad)
+    var genderVal = row[5] || "Otro"; // Columna F (Género)
+    var catVal = row[6] || "Otros"; // Columna G (Categoría)
+    var emergencyVal = row[7]; // Columna H (Alerta_Emergencia)
+    var msgCountVal = parseInt(row[8], 10) || 0; // Columna I (Total_Mensajes)
     
     totalMessages += msgCountVal;
     if (emergencyVal === "SÍ") {
@@ -89,6 +101,11 @@ function createDashboard() {
     
     // Categorías de problemáticas
     categories[catVal] = (categories[catVal] || 0) + 1;
+    
+    // Días de la Semana
+    if (dayVal && weekdays.hasOwnProperty(dayVal)) {
+      weekdays[dayVal]++;
+    }
     
     // Horas de inicio
     if (!isNaN(hourVal)) {
@@ -136,7 +153,7 @@ function createDashboard() {
   dashSheet.getRange("D3:E4").setBorder(true, true, true, true, null, null, "#CBD5E0", SpreadsheetApp.BorderStyle.SOLID).setBackground("#EBF8FF");
   dashSheet.getRange("G3:H4").setBorder(true, true, true, true, null, null, "#CBD5E0", SpreadsheetApp.BorderStyle.SOLID).setBackground(emergencyCount > 0 ? "#FFF5F5" : "#F0FFF4");
   
-  // --- ESCRIBIR TABLAS DE SOPORTE (Ocultas visualmente en columnas K a U) ---
+  // --- ESCRIBIR TABLAS DE SOPORTE (Ocultas visualmente en columnas K a Y) ---
   
   // 1. Tabla de Categorías (Columnas K y L)
   dashSheet.getRange("K1").setValue("Categoría");
@@ -178,6 +195,16 @@ function createDashboard() {
   }
   var ageEndRow = ageRows.length + 1;
   
+  // 5. Tabla de Días de la Semana (Columnas W y X)
+  dashSheet.getRange("W1").setValue("Día");
+  dashSheet.getRange("X1").setValue("Cantidad");
+  var dayRows = ["Lunes", "Martes", "Miércoles", "Jueves", "Viernes", "Sábado", "Domingo"];
+  for (var r = 0; r < dayRows.length; r++) {
+    dashSheet.getRange(r + 2, 23).setValue(dayRows[r]);
+    dashSheet.getRange(r + 2, 24).setValue(weekdays[dayRows[r]]);
+  }
+  var dayEndRow = dayRows.length + 1;
+  
   // --- CONSTRUIR E INYECTAR LOS GRÁFICOS ---
   
   // Gráfico 1: Torta de Problemáticas (Fila 6, Columna A)
@@ -217,26 +244,40 @@ function createDashboard() {
     .build();
   dashSheet.insertChart(chart3);
   
-  // Gráfico 4: Edades (Fila 20, Columna F)
-  var chart4 = dashSheet.newChart()
+  // Gráfico 5: Días de la Semana (Fila 20, Columna F)
+  var chart5 = dashSheet.newChart()
     .setChartType(Charts.ChartType.COLUMN)
-    .addRange(dashSheet.getRange("T1:U" + ageEndRow))
+    .addRange(dashSheet.getRange("W1:X" + dayEndRow))
     .setPosition(20, 5, 20, 10)
-    .setOption('title', 'Distribución de Uso por Edades')
+    .setOption('title', 'Picos de Uso por Día de la Semana')
     .setOption('width', 440)
     .setOption('height', 270)
     .setOption('legend', {position: 'none'})
-    .setOption('colors', ['#805AD5'])
+    .setOption('colors', ['#DD6B20']) // Naranja cálido
+    .build();
+  dashSheet.insertChart(chart5);
+  
+  // Gráfico 4: Edades - Formato Ancho Premium (Fila 34, Columna A)
+  var chart4 = dashSheet.newChart()
+    .setChartType(Charts.ChartType.COLUMN)
+    .addRange(dashSheet.getRange("T1:U" + ageEndRow))
+    .setPosition(34, 1, 10, 10)
+    .setOption('title', 'Distribución de Uso por Edades')
+    .setOption('width', 900) // Ancho de doble columna para lucir espectacular
+    .setOption('height', 270)
+    .setOption('legend', {position: 'none'})
+    .setOption('colors', ['#805AD5']) // Púrpura elegante
     .build();
   dashSheet.insertChart(chart4);
   
-  // 3. Ocultar las columnas de soporte (K a V) para que el Dashboard quede súper limpio y elegante
-  dashSheet.hideColumns(11, 2); // Ocultar K y L
-  dashSheet.hideColumns(14, 2); // Ocultar N y O
-  dashSheet.hideColumns(17, 2); // Ocultar Q y R
-  dashSheet.hideColumns(20, 2); // Ocultar T y U
+  // 3. Ocultar todas las columnas de soporte (K a X)
+  dashSheet.hideColumns(11, 2); // Ocultar K y L (Categorías)
+  dashSheet.hideColumns(14, 2); // Ocultar N y O (Horas)
+  dashSheet.hideColumns(17, 2); // Ocultar Q y R (Géneros)
+  dashSheet.hideColumns(20, 2); // Ocultar T y U (Edades)
+  dashSheet.hideColumns(23, 2); // Ocultar W y X (Días de la semana)
   
-  // Traer la pestaña "Dashboard" al frente para el usuario (si hay interfaz)
+  // Traer la pestaña "Dashboard" al frente (si hay interfaz)
   try {
     dashSheet.activate();
   } catch (e) {
