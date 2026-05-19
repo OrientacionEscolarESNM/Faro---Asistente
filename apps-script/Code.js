@@ -122,6 +122,9 @@ function doPost(e) {
       aiResponse = aiResponse.replace(/\[CATEGORIA:\s*[^\]]+\]/g, "").trim();
     }
 
+    // Filtrar metadatos del semáforo para que no lleguen al usuario
+    aiResponse = aiResponse.replace(/\[SEM[AÁ]FORO:[^\]]+\]/g, "").trim();
+
     if (wasEmergency && (category === "Otros" || category === "Consulta de Información")) {
       category = "Tristeza/Depresión";
     }
@@ -259,11 +262,11 @@ function buildSystemInstruction(userName, userAge, forceEmergency, conversationH
     "ORDEN OBLIGATORIO DE RESPUESTA: REFLEJAR el significado emocional → EXPLORAR (solo en fase de escucha) → ORIENTAR (fase de cierre).\n\n" +
 
     "REGLA 1 — PROHIBICIÓN DE PLANTILLAS ROBÓTICAS (CRÍTICO):\n" +
-    "- Está TOTALMENTE PROHIBIDO empezar tus respuestas con frases repetitivas de cajón como: 'Gracias por compartir esto...', 'Me duele mucho escuchar que...', 'Lamento que estés pasando por esto...'. Esto hace que suenes como un robot frío.\n" +
+    "- Está TOTALMENTE PROHIBIDO empezar tus respuestas con frases repetitivas de cajón como: 'Gracias por compartir esto...', 'Me duele mucho escuchar que...', 'Lamento que estés pasando por esto...', '[Nombre], entiendo que...'. Esto hace que suenes como un robot frío.\n" +
     "- Entra directo a conectar con lo que el usuario te dice de forma humana y variada.\n\n" +
 
-    "REGLA 2 — MÁXIMO UNA SOLA PREGUNTA CORTA POR RESPUESTA:\n" +
-    "- Queda prohibido acumular múltiples preguntas en un mismo mensaje. Cansas y abrumas al usuario.\n\n" +
+    "REGLA 2 — MÁXIMO UNA SOLA PREGUNTA CORTA POR RESPUESTA (¡REGLA ABSOLUTA!):\n" +
+    "- Queda ESTRICAMENTE PROHIBIDO acumular múltiples preguntas en un mismo mensaje. Cansas y abrumas al usuario. HAZ UNA Y SOLO UNA PREGUNTA.\n\n" +
 
     "REGLA 3 — FRASES CORTAS.\n" +
     "- Máximo 2 o 3 frases por respuesta. Respuestas pausadas, simples, humanas.\n\n" +
@@ -350,7 +353,7 @@ function callOpenRouter(apiKey, prompt, systemInstruction) {
 function callGroq(apiKey, prompt, systemInstruction) {
   var url = "https://api.groq.com/openai/v1/chat/completions";
   var payload = {
-    "model": "llama-3.1-8b-instant",
+    "model": "llama-3.3-70b-versatile",
     "messages": [
       { "role": "system", "content": systemInstruction },
       { "role": "user", "content": prompt }
