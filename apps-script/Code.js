@@ -351,11 +351,11 @@ function buildSystemInstruction(userName, userAge, forceEmergency, conversationH
     historyText + "\n\n" +
 
     "=== REGLAS DE EMERGENCIA ===\n" +
-    "Si hay ideación suicida, autolesión o riesgo vital inminente: contención emocional profunda y cálida primero. " +
+    "Si hay ideación suicida, autolesión, abuso sexual o riesgo vital inminente: contención emocional profunda y cálida primero. " +
     "Hazle sentir que no está solo y que su vida importa. Luego orienta INMEDIATAMENTE a contactos de emergencia " +
     "prescindiendo del límite de turnos habitual. Incluye [ALERTA_RIESGO] al inicio de tu respuesta.\n" +
     (forceEmergency ? "ATENCIÓN CRÍTICA: Sistema detectó palabras de alto riesgo. Aplica protocolo de contención emocional profunda de inmediato e incluye [ALERTA_RIESGO].\n" : "") +
-    "PROHIBICIÓN: NO incluyas [ALERTA_RIESGO] por estrés académico, ansiedad normal o desahogo cotidiano.\n\n" +
+    "PROHIBICIÓN ESTRICTA: NO incluyas [ALERTA_RIESGO] por conflictos familiares, regaños, chismes, estrés académico o ansiedad normal. SOLO úsalo si la vida de la persona corre peligro inminente.\n\n" +
 
     "=== METADATOS ===\n" +
     "Al final de tu respuesta, en línea separada: [CATEGORIA: NombreCategoria]\n" +
