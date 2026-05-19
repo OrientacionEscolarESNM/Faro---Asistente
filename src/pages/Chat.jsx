@@ -116,8 +116,11 @@ export default function Chat() {
     }
 
     try {
+      // Obtener últimos 6 mensajes del historial (excluyendo el actual que se envía aparte)
+      const historyToPass = messages.slice(-6).map(m => ({ text: m.text, sender: m.sender }));
+      
       // location puede ser null o tener datos
-      let responseObj = await getFaroResponse(text, userName, userAge, currentLocation?.coords || currentLocation?.status || "No solicitada", sessionId, userGender);
+      let responseObj = await getFaroResponse(text, userName, userAge, currentLocation?.coords || currentLocation?.status || "No solicitada", sessionId, userGender, historyToPass);
       let responseText = responseObj.text;
       const isEmergency = responseObj.isEmergency;
       
