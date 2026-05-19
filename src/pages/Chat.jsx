@@ -52,7 +52,7 @@ export default function Chat() {
     if (userName && userAge && userGender && messages.length === 0) {
       const initGreeting = {
         id: Date.now(),
-        text: `¡Hola, ${userName}! 👋 Qué alegría saludarte. Sé que tienes ${userAge} años y estás buscando orientación. Estoy aquí para escucharte y apoyarte con todo mi cariño en este espacio seguro. ¿Cómo te has sentido hoy?`,
+        text: `Hola, ${userName}. Gracias por escribir. Estoy aquí para escucharte y acompañarte en lo que necesites. ¿Cómo te has sentido?`,
         sender: 'faro'
       };
       setMessages([initGreeting]);
