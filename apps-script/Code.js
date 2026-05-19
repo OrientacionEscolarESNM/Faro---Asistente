@@ -1,6 +1,6 @@
 /**
  * Faro Asistente Backend - Google Apps Script
- * v2.1 — Con semáforo dinámico de cierre y derivación efectiva (Límite 15 entradas).
+ * v2.2 — Rampa de cierre obligatoria en turnos 13, 14 y 15 con inyección directa en el prompt.
  */
 
 // ============================================================
@@ -156,8 +156,73 @@ function getAIChatResponse(userMessage, userName, userAge, forceEmergency, conve
   var groqKey = props.GROQ_API_KEY;
   var mistralKey = props.MISTRAL_API_KEY;
 
-  var systemInstruction = buildSystemInstruction(userName, userAge, forceEmergency, conversationHistory);
-  var prompt = "Mensaje actual del usuario: " + userMessage;
+  // --- CALCULAR TURNO AQUÍ TAMBIÉN (para la inyección directa en el prompt) ---
+  var userTurnCount = 1;
+  if (conversationHistory && conversationHistory.length > 0) {
+    var userMessages = conversationHistory.filter(function (msg) {
+      return msg.sender === 'user';
+    });
+    userTurnCount = userMessages.length + 1;
+  }
+
+  var systemInstruction = buildSystemInstruction(userName, userAge, forceEmergency, conversationHistory, userTurnCount);
+
+  // ============================================================
+  // INYECCIÓN OBLIGATORIA EN EL PROMPT — RAMPA DE CIERRE (Turnos 13, 14 y 15)
+  // Esta va pegada al mensaje del usuario — lo último que lee el modelo
+  // antes de responder, por eso tiene más peso que el system prompt.
+  // Si hay emergencia activa, se omite el cierre para no interrumpir la contención.
+  // ============================================================
+  var closingInjection = "";
+
+  if (!forceEmergency) {
+
+    if (userTurnCount === 13) {
+      closingInjection =
+        "\n\n[INSTRUCCIÓN PRIORITARIA — TURNO 13 DE 15]:\n" +
+        "Responde con calidez al mensaje anterior, pero al final de tu respuesta DEBES sembrar de forma natural " +
+        "la idea de que el tiempo de esta sesión está llegando a su fin. No lo digas de manera abrupta. " +
+        "Hazlo con cuidado, como quien le recuerda a alguien que hay personas reales esperando para ayudarle. " +
+        "Ejemplo de cierre sugerido (adáptalo al tono de la conversación): " +
+        "'Oye, quiero que sepas que el tiempo que podemos compartir hoy está llegando a su fin. " +
+        "Pero no quiero que te quedes sin apoyo — la Línea Amiga (322 784 2874) está disponible las 24 horas " +
+        "y en Orientación Escolar (321 463 7057) también hay alguien listo para escucharte.' " +
+        "NO hagas preguntas abiertas nuevas. Puedes hacer máximo una pregunta muy corta de cierre si es necesario.";
+    }
+
+    else if (userTurnCount === 14) {
+      closingInjection =
+        "\n\n[INSTRUCCIÓN PRIORITARIA — TURNO 14 DE 15 — PENÚLTIMO MENSAJE]:\n" +
+        "Este es el penúltimo mensaje de la sesión. DEBES hacer lo siguiente en tu respuesta:\n" +
+        "1. Valida brevemente lo que la persona compartió hoy.\n" +
+        "2. Dile de forma clara pero cálida que la sesión está terminando.\n" +
+        "3. Entrega los contactos de ayuda de forma visible y directa:\n" +
+        "   - Línea Amiga: 322 784 2874 (gratuita, 24 horas)\n" +
+        "   - Orientación Escolar ESNM: 321 463 7057\n" +
+        "4. Anímale a dar ese paso con esperanza.\n" +
+        "PROHIBIDO hacer preguntas abiertas. PROHIBIDO abrir nuevos temas emocionales. " +
+        "Tono: cálido, firme, esperanzador.";
+    }
+
+    else if (userTurnCount >= 15) {
+      closingInjection =
+        "\n\n[INSTRUCCIÓN PRIORITARIA — TURNO 15 DE 15 — CIERRE FINAL OBLIGATORIO]:\n" +
+        "Este es el último mensaje de esta sesión. DEBES hacer exactamente lo siguiente:\n" +
+        "1. Agradece de forma genuina y breve la confianza de la persona.\n" +
+        "2. Resalta algo positivo de lo que compartió o de la valentía que tuvo al buscar apoyo.\n" +
+        "3. Entrega los contactos de ayuda con claridad:\n" +
+        "   - Línea Amiga: 322 784 2874 (gratuita, 24 horas)\n" +
+        "   - Orientación Escolar ESNM: 321 463 7057\n" +
+        "   - Emergencias: 123\n" +
+        "4. Cierra con un mensaje de esperanza genuino y breve.\n" +
+        "PROHIBICIÓN ABSOLUTA: No hagas ninguna pregunta. No abras ningún tema nuevo. " +
+        "No invites a continuar la conversación. Esta es la despedida de la sesión. " +
+        "Tono: cálido, sereno, esperanzador.";
+    }
+
+  }
+
+  var prompt = "Mensaje actual del usuario: " + userMessage + closingInjection;
 
   var errors = [];
 
@@ -184,8 +249,10 @@ function getAIChatResponse(userMessage, userName, userAge, forceEmergency, conve
 
 // ============================================================
 // CONSTRUCTOR DEL SYSTEM PROMPT DINÁMICO CON RAMPA DE SALIDA
+// Recibe userTurnCount calculado en getAIChatResponse para consistencia
 // ============================================================
-function buildSystemInstruction(userName, userAge, forceEmergency, conversationHistory) {
+function buildSystemInstruction(userName, userAge, forceEmergency, conversationHistory, userTurnCount) {
+
   // 1. ADAPTACIÓN POR EDAD
   var ageInstruction = "";
   var age = parseInt(userAge, 10);
@@ -199,9 +266,8 @@ function buildSystemInstruction(userName, userAge, forceEmergency, conversationH
     }
   }
 
-  // 2. CONTEO MATEMÁTICO EXACTO DE TURNOS DE USUARIO
+  // 2. HISTORIAL DE CONVERSACIÓN
   var historyText = "No hay mensajes previos en esta sesión.";
-  var userTurnCount = 1; // Si no hay historial, este es el primer mensaje del usuario
 
   if (conversationHistory && conversationHistory.length > 0) {
     var lines = conversationHistory.map(function (msg) {
@@ -209,43 +275,37 @@ function buildSystemInstruction(userName, userAge, forceEmergency, conversationH
       return role + ": " + msg.text;
     });
     historyText = lines.join("\n");
-
-    // Contamos estrictamente cuántas veces ha hablado el usuario en el historial recibido
-    var userMessages = conversationHistory.filter(function (msg) {
-      return msg.sender === 'user';
-    });
-
-    // El turno actual de la IA corresponde al número de mensajes que ya envió el usuario + 1 (el que está procesando ahora)
-    userTurnCount = userMessages.length + 1;
   }
 
   // 3. ESTRATEGIA DEL SEMÁFORO: RAMPA DE SALIDA OBLIGATORIA (LÍMITE 15)
+  //    Nota: los turnos 13-15 tienen inyección directa en el prompt (ver getAIChatResponse).
+  //    El semáforo aquí refuerza el marco general de cada fase.
   var turnStrategyInstruction = "";
 
   if (userTurnCount <= 9) {
-    // FASE 1: Escucha Activa y Contención
     turnStrategyInstruction =
       "=== SEMÁFORO DE CONTROL: FASE DE ESCUCHA (Turno " + userTurnCount + " de 15) ===\n" +
       "• Tu prioridad es la contención y la validación emocional profunda utilizando las reglas clínicas.\n" +
       "• Puedes hacer una sola pregunta corta al final para explorar la emoción, sin abrumar.\n";
   }
   else if (userTurnCount >= 10 && userTurnCount <= 12) {
-    // FASE 2: Transición Progresiva e Introducción de Ayuda Humana
     turnStrategyInstruction =
       "=== SEMÁFORO DE CONTROL: FASE DE TRANSICIÓN (Turno " + userTurnCount + " de 15) ===\n" +
-      "• ALERTA: La sesión está cruzando su mitad. Quedan pocos mensajes.\n" +
+      "• ALERTA: La sesión está cruzando su segunda mitad. Quedan pocos mensajes.\n" +
       "• CAMBIO DE ESTRATEGIA: Deja de profundizar en el dolor del usuario. No hagas más preguntas sobre el pasado o el origen del problema.\n" +
-      "• ACCIÓN OBLIGATORIA: Empieza a recoger lo hablado y siembra de forma sutil la necesidad de un puente humano. \n" +
-      "  * Ejemplo de enfoque: 'Llevamos un ratico charlando y me he dado cuenta de la carga tan pesada que llevas encima... Como soy un asistente virtual, me gustaría mucho que esta fuerza que tuviste para escribirme a mí la uses para hablar con alguien real que pueda darte la mano.'\n";
+      "• ACCIÓN OBLIGATORIA: Empieza a recoger lo hablado y siembra de forma sutil la necesidad de un puente humano.\n" +
+      "  Ejemplo de enfoque: 'Llevamos un ratico charlando y me he dado cuenta de la carga tan pesada que llevas... " +
+      "Como soy un asistente virtual, me gustaría que esta fuerza que tuviste para escribirme la uses para hablar con alguien real.'\n";
   }
   else {
-    // FASE 3: Cierre Inminente y Derivación Taxativa (Turnos 13, 14 y 15)
+    // Turnos 13, 14 y 15 — la inyección directa en el prompt es la instrucción principal.
+    // Este bloque del system prompt actúa como refuerzo del marco general.
     turnStrategyInstruction =
       "=== SEMÁFORO DE CONTROL: FASE DE CIERRE SEGURO (Turno " + userTurnCount + " de 15) ===\n" +
-      "• CRÍTICO: LA SESIÓN ESTÁ POR TERMINAR. QUEDAN 1 O 2 INTERCAMBIOS MÁXIMO.\n" +
-      "• PROHIBICIÓN ABSOLUTA: Tienes terminantemente PROHIBIDO hacer preguntas abiertas o abrir nuevos hilos emocionales (No preguntes cosas como '¿qué te duele?', '¿qué te pesa?' o '¿cómo te hace sentir?').\n" +
-      "• ACCIÓN OBLIGATORIA: Prepáralo para la desconexión de forma cálida pero firme. Valida su espacio hoy, indícale explícitamente que la sesión está llegando a su fin por hoy y proporciónale los números de ayuda como única ruta a seguir.\n" +
-      "  * Ejemplo de enfoque: 'Edwin, hemos compartido un espacio importante hoy y te agradezco por confiar en mí, pero nuestro tiempo de chat por hoy está llegando a su fin. No quiero que te quedes solo con esto en el pecho. Te pido de corazón que utilices los canales humanos que están listos para escucharte en vivo: la Línea Amiga (322 784 2874) u Orientación Escolar.'\n";
+      "• CRÍTICO: LA SESIÓN ESTÁ EN SU FASE FINAL.\n" +
+      "• PROHIBICIÓN ABSOLUTA: No hagas preguntas abiertas ni abras nuevos hilos emocionales.\n" +
+      "• ACCIÓN OBLIGATORIA: Sigue las instrucciones específicas de cierre que vienen en el mensaje del usuario.\n" +
+      "  Esas instrucciones tienen prioridad sobre cualquier otra consideración.\n";
   }
 
   // 4. CONSTRUCCIÓN DEL PROMPT FINAL
@@ -266,7 +326,7 @@ function buildSystemInstruction(userName, userAge, forceEmergency, conversationH
     "- Entra directo a conectar con lo que el usuario te dice de forma humana, variada y natural.\n\n" +
 
     "REGLA 2 — MÁXIMO UNA SOLA PREGUNTA CORTA POR RESPUESTA (¡REGLA ABSOLUTA!):\n" +
-    "- Queda ESTRICAMENTE PROHIBIDO acumular múltiples preguntas en un mismo mensaje. Cansas y abrumas al usuario. HAZ UNA Y SOLO UNA PREGUNTA.\n\n" +
+    "- Queda ESTRICTAMENTE PROHIBIDO acumular múltiples preguntas en un mismo mensaje. Cansas y abrumas al usuario. HAZ UNA Y SOLO UNA PREGUNTA.\n\n" +
 
     "REGLA 3 — FRASES CORTAS.\n" +
     "- Máximo 2 o 3 frases por respuesta. Respuestas pausadas, simples, humanas.\n\n" +
@@ -291,7 +351,9 @@ function buildSystemInstruction(userName, userAge, forceEmergency, conversationH
     historyText + "\n\n" +
 
     "=== REGLAS DE EMERGENCIA ===\n" +
-    "Si hay ideación suicida, autolesión o riesgo vital inminente: contención emocional profunda y cálida primero. Hazle sentir que no está solo y que su vida importa. Luego orienta INMEDIATAMENTE a contactos de emergencia prescindiendo del límite de turnos habitual. Incluye [ALERTA_RIESGO] al inicio de tu respuesta.\n" +
+    "Si hay ideación suicida, autolesión o riesgo vital inminente: contención emocional profunda y cálida primero. " +
+    "Hazle sentir que no está solo y que su vida importa. Luego orienta INMEDIATAMENTE a contactos de emergencia " +
+    "prescindiendo del límite de turnos habitual. Incluye [ALERTA_RIESGO] al inicio de tu respuesta.\n" +
     (forceEmergency ? "ATENCIÓN CRÍTICA: Sistema detectó palabras de alto riesgo. Aplica protocolo de contención emocional profunda de inmediato e incluye [ALERTA_RIESGO].\n" : "") +
     "PROHIBICIÓN: NO incluyas [ALERTA_RIESGO] por estrés académico, ansiedad normal o desahogo cotidiano.\n\n" +
 
@@ -301,8 +363,10 @@ function buildSystemInstruction(userName, userAge, forceEmergency, conversationH
 
   return instruction;
 }
+
+
 // ============================================================
-// LLAMADAS A LAS APIs DE IA (Mantenidas estables)
+// LLAMADAS A LAS APIs DE IA
 // ============================================================
 
 function callGemini(apiKey, prompt, systemInstruction) {
