@@ -1,6 +1,6 @@
 /**
  * Faro Asistente Backend - Google Apps Script
- * v2.0 — Manual completo embebido, historial de conversación, prompt mejorado.
+ * v2.1 — Con semáforo dinámico de cierre y derivación efectiva (Límite 15 entradas).
  */
 
 // ============================================================
@@ -56,9 +56,9 @@ var FARO_MANUAL_CLEAN =
 
   "PROTOCOLOS ESPECÍFICOS:\n" +
   "IDEACIÓN SUICIDA – Señales: expresiones de muerte, despedidas, desesperanza extrema.\n" +
-  "  Respuesta recomendada: 'Lamento que estés sintiendo tanto dolor.' / 'Tu vida tiene un valor enorme.' / '¿Tienes pensamientos de hacerte daño ahora mismo?'\n" +
-  "  Acciones: no dejar sola a la persona, adulto responsable inmediato, líneas de emergencia, remisión urgente.\n" +
-  "  Frases PROHIBIDAS en ideación suicida: 'Eso es llamar la atención.' / 'No digas tonterías.' / 'La gente tiene problemas peores.'\n\n" +
+  "   Respuesta recomendada: 'Lamento que estés sintiendo tanto dolor.' / 'Tu vida tiene un valor enorme.' / '¿Tienes pensamientos de hacerte daño ahora mismo?'\n" +
+  "   Acciones: no dejar sola a la persona, adulto responsable inmediato, líneas de emergencia, remisión urgente.\n" +
+  "   Frases PROHIBIDAS en ideación suicida: 'Eso es llamar la atención.' / 'No digas tonterías.' / 'La gente tiene problemas peores.'\n\n" +
   "ATAQUE DE PÁNICO – Guiar respiración lenta, lenguaje muy calmado. 'Lo que sientes puede ser muy intenso, pero no estás solo. Vamos a respirar juntos.'\n\n" +
   "BULLYING – 'Nadie merece ser humillado ni maltratado.' Reporte institucional, escalar a convivencia escolar.\n\n" +
   "VIOLENCIA INTRAFAMILIAR – Buscar lugar seguro, adulto protector, líneas oficiales y autoridades competentes.\n\n" +
@@ -95,14 +95,14 @@ function doPost(e) {
   try {
     var data = JSON.parse(e.postData.contents);
 
-    var message          = data.message;
-    var userName         = data.userName || "";
-    var userAge          = data.userAge || "";
-    var location         = data.location || null;
-    var forceEmergency   = data.forceEmergency || false;
-    var sessionId        = data.sessionId || "";
-    var userGender       = data.userGender || "";
-    var conversationHistory = data.conversationHistory || []; // NUEVO: historial
+    var message = data.message;
+    var userName = data.userName || "";
+    var userAge = data.userAge || "";
+    var location = data.location || null;
+    var forceEmergency = data.forceEmergency || false;
+    var sessionId = data.sessionId || "";
+    var userGender = data.userGender || "";
+    var conversationHistory = data.conversationHistory || [];
 
     if (!message) throw new Error("El mensaje del usuario está vacío.");
 
@@ -148,10 +148,10 @@ function doPost(e) {
 // ============================================================
 function getAIChatResponse(userMessage, userName, userAge, forceEmergency, conversationHistory) {
   var props = PropertiesService.getScriptProperties().getProperties();
-  var geminiKey    = props.GEMINI_API_KEY;
+  var geminiKey = props.GEMINI_API_KEY;
   var openrouterKey = props.OPENROUTER_API_KEY;
-  var groqKey      = props.GROQ_API_KEY;
-  var mistralKey   = props.MISTRAL_API_KEY;
+  var groqKey = props.GROQ_API_KEY;
+  var mistralKey = props.MISTRAL_API_KEY;
 
   var systemInstruction = buildSystemInstruction(userName, userAge, forceEmergency, conversationHistory);
   var prompt = "Mensaje actual del usuario: " + userMessage;
@@ -180,7 +180,7 @@ function getAIChatResponse(userMessage, userName, userAge, forceEmergency, conve
 
 
 // ============================================================
-// CONSTRUCTOR DEL SYSTEM PROMPT
+// CONSTRUCTOR DEL SYSTEM PROMPT DINÁMICO
 // ============================================================
 function buildSystemInstruction(userName, userAge, forceEmergency, conversationHistory) {
   // Adaptación por edad
@@ -198,12 +198,26 @@ function buildSystemInstruction(userName, userAge, forceEmergency, conversationH
 
   // Formatear historial de conversación
   var historyText = "No hay mensajes previos en esta sesión.";
+  var currentTurn = 1; // Por defecto es el primer mensaje si no hay historial
+
   if (conversationHistory && conversationHistory.length > 0) {
-    var lines = conversationHistory.map(function(msg) {
+    var lines = conversationHistory.map(function (msg) {
       var role = msg.sender === 'user' ? (userName || "Usuario") : "Faro";
       return role + ": " + msg.text;
     });
     historyText = lines.join("\n");
+    // El turno actual es la longitud del historial dividido entre 2 (un par usuario/asistente por interacción) + 1
+    currentTurn = Math.floor(conversationHistory.length / 2) + 1;
+  }
+
+  // ESTRATEGIA DEL SEMÁFORO DE CONTROL DE TURNOS (LÍMITE 15)
+  var turnStrategyInstruction = "";
+  if (currentTurn <= 10) {
+    turnStrategyInstruction = "ESTRATEGIA ACTUAL (Fase de Escucha): Estamos en el turno número " + currentTurn + " de 15 disponibles. Céntrate plenamente en el PASO 1, 2 y 3 del manual: escucha activa, validación profunda y contención emocional calmada.";
+  } else if (currentTurn >= 11 && currentTurn <= 13) {
+    turnStrategyInstruction = "ESTRATEGIA ACTUAL (Fase de Transición): Estamos en el turno número " + currentTurn + " de 15 disponibles. Debes empezar a sembrar la importancia del apoyo humano real. Sigue conteniendo, pero introduce de manera fluida y suave que hablar con un profesional cara a cara aliviará el dolor. Orienta discretamente hacia la Línea Amiga (322 784 2874) u Orientación Escolar (321 463 7057).";
+  } else {
+    turnStrategyInstruction = "ESTRATEGIA ACTUAL (Fase de Cierre Seguro): ATENCIÓN: Estamos en el turno final (" + currentTurn + " de 15). Quedan pocos o ningún intercambio. PROHIBIDO abrir nuevos hilos emocionales o hacer preguntas abiertas sobre su dolor. Tu misión exclusiva es consolidar el cierre seguro, recordar con calidez empática que el tiempo de chat por hoy está terminando, y entregar explícitamente los números de contacto humano (Línea Amiga: 322 784 2874 u Orientación: 321 463 7057) como el camino efectivo a seguir.";
   }
 
   var instruction =
@@ -214,7 +228,7 @@ function buildSystemInstruction(userName, userAge, forceEmergency, conversationH
 
     "=== CALIDAD CONVERSACIONAL CLÍNICA — REGLAS PRIORITARIAS ===\n\n" +
 
-    "PRINCIPIO CENTRAL: El objetivo NO es 'seguir conversando'. Es hacer sentir comprendida a la persona, detectar riesgo, contener emocionalmente y orientar cuando corresponda.\n\n" +
+    "PRINCIPIO CENTRAL: El objetivo NO es 'seguir conversando' indefinidamente. Es hacer sentir comprendida a la persona, detectar riesgo, contener emocionalmente y orientar taxativamente hacia la ayuda humana.\n\n" +
 
     "ORDEN OBLIGATORIO DE RESPUESTA: REFLEJAR el significado emocional → EXPLORAR con una pregunta específica → ORIENTAR solo cuando sea necesario. Nunca al revés.\n\n" +
 
@@ -224,7 +238,7 @@ function buildSystemInstruction(userName, userAge, forceEmergency, conversationH
     "EJEMPLO CORRECTO: 'Ver noticias de niños que sufren puede hacer que el mundo se vea muy injusto y muy triste. Eso puede ser muy pesado, especialmente si además te sientes solo en el colegio.'\n" +
     "EJEMPLO INCORRECTO: '¿Qué crees que está fallando en la sociedad?' o '¿Qué podríamos hacer juntos para conectarte con la comunidad?'\n\n" +
 
-    "REGLA 2 — UNA SOLA PREGUNTA, específica, sobre la emoción expresada.\n" +
+    "REGLA 2 — UNA SOLA PREGUNTA (Solo en Fase de Escucha o Transición), específica, sobre la emoción expresada.\n" +
     "PROHIBIDAS: preguntas amplias o que cambian de tema. ('¿qué te gusta hablar?', '¿qué podríamos hacer?', '¿qué te apasiona?')\n" +
     "CORRECTAS: preguntas emocionales precisas. ('¿Cuándo te sientes más solo?', 'Cuando piensas en esas noticias, ¿qué es lo que más te duele?')\n\n" +
 
@@ -257,6 +271,9 @@ function buildSystemInstruction(userName, userAge, forceEmergency, conversationH
 
     "REGLA 11 — La pregunta de seguridad ('¿Estás en un lugar seguro?') solo se hace ante señales claras de riesgo MEDIO o ALTO. Nunca como rutina.\n\n" +
 
+    "=== CONTROL DE TIEMPO / SEMÁFORO DE TURNOS ===\n" +
+    turnStrategyInstruction + "\n\n" +
+
     "=== PERFIL DEL USUARIO ===\n" +
     "Nombre: " + (userName || "Estudiante") + "\n" +
     "Edad: " + (userAge ? userAge + " años" : "no especificada") + "\n" +
@@ -266,7 +283,7 @@ function buildSystemInstruction(userName, userAge, forceEmergency, conversationH
     historyText + "\n\n" +
 
     "=== REGLAS DE EMERGENCIA ===\n" +
-    "Si hay ideación suicida, autolesión o riesgo vital inminente: contención emocional profunda y cálida primero. Hazle sentir que no está solo y que su vida importa. Luego orienta a contactos de emergencia. Incluye [ALERTA_RIESGO] al inicio de tu respuesta.\n" +
+    "Si hay ideación suicida, autolesión o riesgo vital inminente: contención emocional profunda y cálida primero. Hazle sentir que no está solo y que su vida importa. Luego orienta INMEDIATAMENTE a contactos de emergencia prescindiendo del límite de turnos habitual. Incluye [ALERTA_RIESGO] al inicio de tu respuesta.\n" +
     (forceEmergency ? "ATENCIÓN CRÍTICA: Sistema detectó palabras de alto riesgo. Aplica protocolo de contención emocional profunda de inmediato e incluye [ALERTA_RIESGO].\n" : "") +
     "PROHIBICIÓN: NO incluyas [ALERTA_RIESGO] por estrés académico, ansiedad normal o desahogo cotidiano.\n\n" +
 
@@ -279,7 +296,7 @@ function buildSystemInstruction(userName, userAge, forceEmergency, conversationH
 
 
 // ============================================================
-// LLAMADAS A LAS APIs DE IA
+// LLAMADAS A LAS APIs DE IA (Mantenidas estables)
 // ============================================================
 
 function callGemini(apiKey, prompt, systemInstruction) {
@@ -375,7 +392,7 @@ function callMistral(apiKey, prompt, systemInstruction) {
 
 
 // ============================================================
-// SERVICIO DE ALERTA VÍA TELEGRAM (sin cambios)
+// SERVICIO DE ALERTA VÍA TELEGRAM
 // ============================================================
 function sendTelegramAlert(userMessage, userName, userAge, location) {
   var props = PropertiesService.getScriptProperties().getProperties();
@@ -384,7 +401,7 @@ function sendTelegramAlert(userMessage, userName, userAge, location) {
   if (!token || !chatId) { console.error("Faltan credenciales de Telegram."); return; }
 
   var name = userName || "Estudiante Anónimo";
-  var age  = userAge ? userAge + " años" : "Edad desconocida";
+  var age = userAge ? userAge + " años" : "Edad desconocida";
   var locText = "Ubicación no proporcionada.";
   var hasCoords = false;
   var lat = null, lng = null;
@@ -408,7 +425,7 @@ function sendTelegramAlert(userMessage, userName, userAge, location) {
       "payload": JSON.stringify({ "chat_id": chatId, "text": textAlert, "parse_mode": "HTML" }),
       "muteHttpExceptions": true
     });
-  } catch(e) { console.error("Error Telegram mensaje: " + e.toString()); }
+  } catch (e) { console.error("Error Telegram mensaje: " + e.toString()); }
 
   if (hasCoords) {
     try {
@@ -417,13 +434,13 @@ function sendTelegramAlert(userMessage, userName, userAge, location) {
         "payload": JSON.stringify({ "chat_id": chatId, "latitude": lat, "longitude": lng }),
         "muteHttpExceptions": true
       });
-    } catch(e) { console.error("Error Telegram ubicación: " + e.toString()); }
+    } catch (e) { console.error("Error Telegram ubicación: " + e.toString()); }
   }
 }
 
 
 // ============================================================
-// REGISTRO EN GOOGLE SHEETS (sin cambios)
+// REGISTRO EN GOOGLE SHEETS
 // ============================================================
 function logSessionToGoogleSheet(sessionId, userAge, category, wasEmergency, userGender) {
   if (!sessionId) return;
@@ -465,7 +482,7 @@ function logSessionToGoogleSheet(sessionId, userAge, category, wasEmergency, use
 }
 
 function getDayNameInSpanish(dayNum) {
-  return ["Domingo","Lunes","Martes","Miércoles","Jueves","Viernes","Sábado"][dayNum] || "Lunes";
+  return ["Domingo", "Lunes", "Martes", "Miércoles", "Jueves", "Viernes", "Sábado"][dayNum] || "Lunes";
 }
 
 function testSheetsConnection() {
