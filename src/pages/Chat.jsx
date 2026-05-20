@@ -24,6 +24,17 @@ export default function Chat() {
     return saved ? JSON.parse(saved) : null;
   });
 
+  const isOnboarded = userName !== '' && userAge !== '' && userGender !== '';
+
+  useEffect(() => {
+    if (isOnboarded && (!locationData || !locationData.coords)) {
+      getUserLocation().then(loc => {
+        setLocationData(loc);
+        sessionStorage.setItem('faro_location', JSON.stringify(loc));
+      });
+    }
+  }, [isOnboarded]);
+
   const [messageCount, setMessageCount] = useState(() => {
     const saved = sessionStorage.getItem('faro_message_count');
     return saved ? parseInt(saved, 10) : 0;
@@ -69,18 +80,14 @@ export default function Chat() {
     }
   };
 
-  const handleOnboardingSubmit = async (name, age, gender) => {
+  const handleOnboardingSubmit = (name, age, gender) => {
     setUserName(name);
     setUserAge(age);
     setUserGender(gender);
     sessionStorage.setItem('faro_user_name', name);
     sessionStorage.setItem('faro_user_age', age);
     sessionStorage.setItem('faro_user_gender', gender);
-
-    // Intentar obtener ubicación al inicio
-    const loc = await getUserLocation();
-    setLocationData(loc);
-    sessionStorage.setItem('faro_location', JSON.stringify(loc));
+    // Nota: la ubicación se obtendrá en segundo plano mediante el useEffect al cambiar isOnboarded a true
   };
 
   const retryLocation = async () => {
@@ -107,12 +114,18 @@ export default function Chat() {
     setMessages((prev) => [...prev, userMsg]);
     setIsTyping(true);
 
-    // Intentar recuperar la ubicación dinámicamente si no está en memoria
+    // Intentar recuperar la ubicación si no hay ningún intento registrado aún
     let currentLocation = locationData;
-    if (!currentLocation || !currentLocation.coords) {
+    if (!currentLocation) {
       currentLocation = await getUserLocation();
       setLocationData(currentLocation);
       sessionStorage.setItem('faro_location', JSON.stringify(currentLocation));
+    } else if (!currentLocation.coords && currentLocation.status !== 'denied') {
+      // Reintentar en segundo plano si el intento anterior no obtuvo coordenadas y no fue denegado expresamente
+      getUserLocation().then(loc => {
+        setLocationData(loc);
+        sessionStorage.setItem('faro_location', JSON.stringify(loc));
+      });
     }
 
     try {
@@ -158,7 +171,7 @@ export default function Chat() {
     }
   };
 
-  const isOnboarded = userName !== '' && userAge !== '' && userGender !== '';
+  // isOnboarded ya está definido arriba
 
   return (
     <div className="chat-container animate-fade-in">
